@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import type { Pagina } from "../App";
+import api from "../api/client";
 
 const tutteLeVoci = [
   {
@@ -94,6 +96,11 @@ export default function Layout({
   utente: any;
 }) {
   const ruolo = utente?.ruolo ?? "operatore";
+  const [config, setConfig] = useState<{ ollamaModel: string; groqModel: string } | null>(null);
+
+  useEffect(() => {
+    api.get("/config").then((res) => setConfig(res.data)).catch(() => {});
+  }, []);
 
   const voci = tutteLeVoci.filter((v) =>
     (v.ruoli as readonly string[]).includes(ruolo),
@@ -229,7 +236,7 @@ export default function Layout({
           }}
         >
           <div style={{ fontSize: 11, color: "var(--grigio)" }}>
-            AI locale · Ollama
+            AI · Ollama → Groq
           </div>
           <div
             style={{
@@ -239,7 +246,7 @@ export default function Layout({
               marginBottom: 10,
             }}
           >
-            qwen2.5:14b
+            {config ? config.ollamaModel : "—"}
           </div>
           <div
             style={{

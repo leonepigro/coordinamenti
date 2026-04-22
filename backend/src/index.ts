@@ -14,11 +14,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const ollama = new OpenAI({
-  baseURL: "http://127.0.0.1:11434/v1",
-  apiKey: "ollama",
-});
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434/v1";
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5:14b";
+const GROQ_MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 
+const ollama = new OpenAI({ baseURL: OLLAMA_BASE_URL, apiKey: "ollama" });
 const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
   apiKey: process.env.GROQ_API_KEY,
@@ -1029,6 +1029,15 @@ app.delete("/api/utenti-app/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
+// Configurazione esposta al frontend
+app.get("/api/config", (_req, res) => {
+  res.json({
+    ollamaModel: OLLAMA_MODEL,
+    groqModel: GROQ_MODEL,
+    ollamaUrl: OLLAMA_BASE_URL,
+  });
+});
+
 // Dati per la mappa
 app.get("/api/mappa", async (req, res) => {
   try {
@@ -1215,7 +1224,7 @@ async function chatWithFallback(params: any) {
 
     const res = await ollama.chat.completions.create({
       ...params,
-      model: "qwen2.5:14b",
+      model: OLLAMA_MODEL,
       temperature: 0,
     });
 
@@ -1227,7 +1236,7 @@ async function chatWithFallback(params: any) {
 
     const res = await groq.chat.completions.create({
       ...params,
-      model: "llama-3.3-70b-versatile",
+      model: GROQ_MODEL,
       temperature: 0,
     });
 
@@ -1322,7 +1331,7 @@ Formato delle risposte:
         console.warn("⚠️ Output scarso → fallback Groq");
 
         completion = await groq.chat.completions.create({
-          model: "llama-3.3-70b-versatile",
+          model: GROQ_MODEL,
           messages: [
             { role: "system", content: systemPrompt },
             ...currentMessages,
