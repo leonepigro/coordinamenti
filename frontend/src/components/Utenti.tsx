@@ -125,15 +125,17 @@ export default function Utenti() {
             {lista.length} utenti in carico
           </p>
         </div>
-        <button onClick={apriNuovo} style={btnPrimarioStyle}>
-          + Nuovo utente
-        </button>
-        <button
-          onClick={() => setMostraImport(true)}
-          style={btnSecondarioStyle}
-        >
-          ↑ Importa Excel
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => setMostraImport(true)}
+            style={btnSecondarioStyle}
+          >
+            ↑ Importa Excel
+          </button>
+          <button onClick={apriNuovo} style={btnPrimarioStyle}>
+            + Nuovo utente
+          </button>
+        </div>
       </div>
 
       {/* Ricerca */}
@@ -236,6 +238,39 @@ export default function Utenti() {
                     >
                       📍 {u.indirizzo}
                     </div>
+                    {u.piani.length > 0 && (
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 4,
+                          marginTop: 6,
+                        }}
+                      >
+                        {u.piani.map((p, idx) => {
+                          const giorni = p.giorniSettimana
+                            .split(",")
+                            .map((g) => GIORNI_LABEL[g] ?? g)
+                            .join(" ");
+                          return (
+                            <span
+                              key={idx}
+                              style={{
+                                fontSize: 10,
+                                padding: "2px 8px",
+                                borderRadius: 10,
+                                background: "var(--sabbia)",
+                                color: "var(--inchiostro)",
+                                border: "1px solid var(--bordo)",
+                                opacity: 0.85,
+                              }}
+                            >
+                              {p.tipoServizio.nome} · {giorni} {p.oraInizio}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 10 }}
