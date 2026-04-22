@@ -1028,6 +1028,59 @@ app.delete("/api/utenti-app/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
+// Dati per la mappa
+app.get("/api/mappa", async (req, res) => {
+  try {
+    const oggi = new Date();
+    oggi.setHours(0, 0, 0, 0);
+    const fineOggi = new Date();
+    fineOggi.setHours(23, 59, 59, 999);
+
+    const [operatori, utenti, interventiOggi] = await Promise.all([
+      prisma.operatore.findMany({
+        where: { attivo: true, lat: { not: null }, lon: { not: null } },
+        select: {
+          id: true, nome: true, qualifica: true,
+          telefono: true, lat: true, lon: true, mezzoTrasporto: true,
+        },
+        orderBy: { nome: "asc" },
+      }),
+      prisma.utente.findMany({
+        where: { attivo: true, lat: { not: null }, lon: { not: null } },
+        select: { id: true, nome: true, indirizzo: true, lat: true, lon: true },
+        orderBy: { nome: "asc" },
+      }),
+      prisma.intervento.findMany({
+        where: { data: { gte: oggi, lte: fineOggi } },
+        select: {
+          id: true, turno: true, ordineGiornata: true,
+          operatore: { select: { id: true, nome: true } },
+          utente: { select: { id: true, nome: true, lat: true, lon: true } },
+          tipoServizio: { select: { nome: true } },
+        },
+        orderBy: [{ operatoreId: "asc" }, { turno: "asc" }, { ordineGiornata: "asc" }],
+      }),
+    ]);
+
+    const totaleOperatori = await prisma.operatore.count({ where: { attivo: true } });
+    const totaleUtenti = await prisma.utente.count({ where: { attivo: true } });
+
+    res.json({
+      ok: true,
+      operatori,
+      utenti,
+      interventiOggi,
+      senzaCoordinate: {
+        operatori: totaleOperatori - operatori.length,
+        utenti: totaleUtenti - utenti.length,
+      },
+    });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
 // Candidati idonei per un intervento scoperto
 app.get("/api/interventi/:id/candidati", async (req, res) => {
   try {

@@ -9,6 +9,13 @@ const tutteLeVoci = [
     ruoli: ["admin", "coordinatore"],
   },
   {
+    id: "mappa",
+    label: "Mappa",
+    icona: "◎",
+    gruppo: "principale",
+    ruoli: ["admin", "coordinatore"],
+  },
+  {
     id: "chat",
     label: "Assistente",
     icona: "✦",

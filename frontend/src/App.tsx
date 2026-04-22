@@ -11,12 +11,14 @@ import PianiAssistenziali from "./components/PianiAssistenziali";
 import TipiServizio from "./components/TipiServizio";
 import GestioneAccount from "./components/GestioneAccount";
 import Dashboard from "./components/Dashboard";
+import Mappa from "./components/Mappa";
 import Login from "./components/Login";
 
 import { auth } from "./api/client";
 
 export type Pagina =
   | "dashboard"
+  | "mappa"
   | "turni"
   | "operatori"
   | "utenti"
@@ -102,6 +104,7 @@ export default function App() {
       utente={utente}
     >
       {pagina === "dashboard" && <Dashboard onNavigate={setPagina} />}
+      {pagina === "mappa" && <Mappa />}
       {pagina === "turni" && <TurniGriglia />}
       {pagina === "operatori" && <Operatori />}
       {pagina === "utenti" && <Utenti />}
