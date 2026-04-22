@@ -1,0 +1,143 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./turni.db"
+}
+
+model Operatore {
+  id              Int                @id @default(autoincrement())
+  nome            String
+  qualifica       String
+  oreSettimanali  Int                @default(36)
+  indirizzo       String
+  lat             Float?
+  lon             Float?
+  preferenzaTurno String?
+  telefono        String?
+  attivo          Boolean            @default(true)
+  createdAt       DateTime           @default(now())
+  skills          OperatoreSkill[]
+  equipe          EquipeMembro[]
+  interventi      Intervento[]
+  indisponibilita Indisponibilita[]
+  mezzoTrasporto  String  @default("foot")  // driving | cycling | foot 
+  utenteApp   UtenteApp?
+}
+
+model Skill {
+  id          Int              @id @default(autoincrement())
+  nome        String           @unique  // es. "Patente B", "Medicazioni", "Fisioterapia"
+  descrizione String?
+  operatori   OperatoreSkill[]
+  servizi     ServizioSkill[]
+}
+
+model OperatoreSkill {
+  operatoreId Int
+  skillId     Int
+  operatore   Operatore @relation(fields: [operatoreId], references: [id])
+  skill       Skill     @relation(fields: [skillId], references: [id])
+  @@id([operatoreId, skillId])
+}
+
+model TipoServizio {
+  id          Int             @id @default(autoincrement())
+  nome        String          @unique  // es. "Igiene personale", "Accompagno", "Medicazione"
+  durata      Int                      // minuti
+  descrizione String?
+  skills      ServizioSkill[]
+  piani       PianoAssistenziale[]
+  interventi       Intervento[]
+}
+
+model ServizioSkill {
+  tipoServizioId Int
+  skillId        Int
+  tipoServizio   TipoServizio @relation(fields: [tipoServizioId], references: [id])
+  skill          Skill        @relation(fields: [skillId], references: [id])
+  @@id([tipoServizioId, skillId])
+}
+
+model Utente {
+  id               Int                  @id @default(autoincrement())
+  nome             String
+  indirizzo        String
+  lat              Float?
+  lon              Float?
+  oreSettimanali   Int                  @default(10)
+  note             String?
+  attivo           Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  piani            PianoAssistenziale[]
+  equipe           Equipe[]
+  interventi       Intervento[]
+}
+
+model PianoAssistenziale {
+  id             Int          @id @default(autoincrement())
+  utenteId       Int
+  tipoServizioId Int
+  giorniSettimana String
+  oraInizio      String
+  attivo         Boolean      @default(true)
+  utente         Utente       @relation(fields: [utenteId], references: [id])
+  tipoServizio   TipoServizio @relation(fields: [tipoServizioId], references: [id])
+}
+
+model Equipe {
+  id       Int            @id @default(autoincrement())
+  utenteId Int
+  nome     String?
+  utente   Utente         @relation(fields: [utenteId], references: [id])
+  membri   EquipeMembro[]
+}
+
+model EquipeMembro {
+  equipeId    Int
+  operatoreId Int
+  ruolo       String?       // es. "principale", "backup"
+  equipe      Equipe      @relation(fields: [equipeId], references: [id])
+  operatore   Operatore   @relation(fields: [operatoreId], references: [id])
+  @@id([equipeId, operatoreId])
+}
+
+model Intervento {
+  id             Int           @id @default(autoincrement())
+  utenteId       Int
+  operatoreId    Int?
+  tipoServizioId Int?
+  data           DateTime
+  turno          String
+  durata         Int
+  ordineGiornata Int?
+  completato     Boolean       @default(false)
+  note           String?
+  createdAt      DateTime      @default(now())
+  utente         Utente        @relation(fields: [utenteId], references: [id])
+  operatore      Operatore?    @relation(fields: [operatoreId], references: [id])
+  tipoServizio   TipoServizio? @relation(fields: [tipoServizioId], references: [id])
+}
+
+model Indisponibilita {
+  id          Int       @id @default(autoincrement())
+  operatoreId Int
+  data        DateTime
+  motivo      String?
+  createdAt   DateTime  @default(now())
+  operatore   Operatore @relation(fields: [operatoreId], references: [id])
+}
+
+model UtenteApp {
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  nome        String
+  passwordHash String
+  ruolo       String   @default("operatore") // admin | coordinatore | operatore
+  attivo      Boolean  @default(true)
+  operatoreId Int?     @unique  // collegamento opzionale all'operatore
+  createdAt   DateTime @default(now())
+  operatore   Operatore? @relation(fields: [operatoreId], references: [id])
+}

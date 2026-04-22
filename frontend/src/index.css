@@ -1,0 +1,49 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap");
+
+:root {
+  --terra: #c4714a;
+  --terra-light: #f2e8e0;
+  --terra-dark: #8b4e33;
+  --sabbia: #f5efe6;
+  --sabbia-dark: #e8ddd0;
+  --salvia: #7a9e7e;
+  --salvia-light: #ebf2ec;
+  --salvia-dark: #4e7052;
+  --inchiostro: #2c2420;
+  --inchiostro-light: #5c4a42;
+  --grigio: #9e8e86;
+  --grigio-light: #f0ebe8;
+  --bianco: #fdfaf7;
+  --bordo: #e8ddd6;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "DM Sans", system-ui, sans-serif;
+  background: var(--sabbia);
+  color: var(--inchiostro);
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: "DM Sans", system-ui, sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--bordo);
+  border-radius: 2px;
+}
