@@ -13,6 +13,7 @@ interface Operatore {
   oreSettimanali: number;
   preferenzaTurno: string | null;
   telefono: string | null;
+  indirizzo: string | null;
   mezzoTrasporto: string | null;
   attivo: boolean;
   skills: Skill[];
@@ -110,16 +111,17 @@ export default function Operatori() {
             {lista.length} operatori attivi
           </p>
         </div>
-        <button onClick={apriNuovo} style={btnPrimarioStyle}>
-          + Nuovo operatore
-        </button>
-        <button
-          onClick={() => setMostraImport(true)}
-          style={btnSecondarioStyle}
-        >
-          ↑ Importa Excel
-        </button>
-        ;
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => setMostraImport(true)}
+            style={btnSecondarioStyle}
+          >
+            ↑ Importa Excel
+          </button>
+          <button onClick={apriNuovo} style={btnPrimarioStyle}>
+            + Nuovo operatore
+          </button>
+        </div>
       </div>
 
       {/* Ricerca */}
@@ -294,21 +296,29 @@ export default function Operatori() {
               {/* Info bottom */}
               <div
                 style={{
-                  display: "flex",
-                  gap: 14,
                   fontSize: 12,
                   color: "var(--grigio)",
                   paddingTop: 12,
                   borderTop: "1px solid var(--sabbia)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
                 }}
               >
-                <span>⏱ {op.oreSettimanali}h/sett.</span>
-                {op.preferenzaTurno && <span>☀ {op.preferenzaTurno}</span>}
-                {op.mezzoTrasporto && (
-                  <span>
-                    {MEZZO_LABEL[op.mezzoTrasporto] ?? op.mezzoTrasporto}
+                {op.indirizzo && (
+                  <span style={{ color: "var(--inchiostro)", opacity: 0.6 }}>
+                    📍 {op.indirizzo}
                   </span>
                 )}
+                <div style={{ display: "flex", gap: 14 }}>
+                  <span>⏱ {op.oreSettimanali}h/sett.</span>
+                  {op.preferenzaTurno && <span>☀ {op.preferenzaTurno}</span>}
+                  {op.mezzoTrasporto && (
+                    <span>
+                      {MEZZO_LABEL[op.mezzoTrasporto] ?? op.mezzoTrasporto}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           );
