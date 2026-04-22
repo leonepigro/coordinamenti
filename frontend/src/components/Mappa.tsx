@@ -67,7 +67,7 @@ function FitBounds({ punti }: { punti: [number, number][] }) {
     } else if (punti.length === 1) {
       map.setView(punti[0], 13);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [punti, map]);
   return null;
 }
 
@@ -154,6 +154,18 @@ export default function Mappa() {
       stimaPosizioneAttuale(op, dati.interventiOggi),
     );
   }, [dati]);
+
+  const puntiVisibili = useMemo((): [number, number][] => {
+    if (!dati) return [];
+    const pts: [number, number][] = [];
+    if (filtri.utenti)
+      dati.utenti.forEach((u) => pts.push([u.lat, u.lon]));
+    if (filtri.operatori)
+      dati.operatori.forEach((o) => pts.push([o.lat, o.lon]));
+    if (filtri.stimata)
+      posizioniStimate.forEach((p) => { if (p.inServizio) pts.push([p.lat, p.lon]); });
+    return pts.length > 0 ? pts : puntiMappa;
+  }, [dati, filtri, posizioniStimate, puntiMappa]);
 
   const percorsiOggi = useMemo(() => {
     if (!dati) return [];
@@ -289,7 +301,7 @@ export default function Mappa() {
         style={{ height: "calc(100vh - 52px)", width: "100%" }}
         zoomControl
       >
-        {puntiMappa.length > 0 && <FitBounds punti={puntiMappa} />}
+        {puntiVisibili.length > 0 && <FitBounds punti={puntiVisibili} />}
 
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
