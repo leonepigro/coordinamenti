@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:3001/api",
+  baseURL: "/api",
   headers: { "Content-Type": "application/json" },
 });
 
@@ -109,7 +109,7 @@ export const chat = {
     onEvent: (event: any) => void,
   ): Promise<void> => {
     return new Promise((resolve, reject) => {
-      fetch("http://localhost:3001/api/chat/stream", {
+      fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, history }),

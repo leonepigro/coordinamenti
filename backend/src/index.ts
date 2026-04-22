@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import path from "path";
 import OpenAI from "openai";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -1174,6 +1175,7 @@ app.put("/api/interventi/:id/assegna", async (req, res) => {
 });
 
 app.use((req: any, res, next) => {
+  if (!req.path.startsWith("/api")) return next();
   if (req.path === "/api/auth/login" || req.path === "/api/auth/verifica")
     return next();
   const auth = req.headers.authorization;
@@ -1377,6 +1379,12 @@ Formato delle risposte:
     console.error(e);
     res.status(500).json({ ok: false, error: String(e) });
   }
+});
+
+const frontendDist = path.join(__dirname, "..", "..", "frontend", "dist");
+app.use(express.static(frontendDist));
+app.get(/^(?!\/api).*/, (_req, res) => {
+  res.sendFile(path.join(frontendDist, "index.html"));
 });
 
 app.listen(3001, () => console.log("Backend su http://localhost:3001"));
