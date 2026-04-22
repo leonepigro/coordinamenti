@@ -94,6 +94,10 @@ export const tipiServizio = {
 
 export const briefing = {
   get: () => api.get("/briefing"),
+  candidati: (interventoId: number) =>
+    api.get(`/interventi/${interventoId}/candidati`),
+  assegna: (interventoId: number, operatoreId: number) =>
+    api.put(`/interventi/${interventoId}/assegna`, { operatoreId }),
 };
 
 export const chat = {

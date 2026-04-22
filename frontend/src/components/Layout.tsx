@@ -2,6 +2,13 @@ import type { Pagina } from "../App";
 
 const tutteLeVoci = [
   {
+    id: "dashboard",
+    label: "Situazione",
+    icona: "◈",
+    gruppo: "principale",
+    ruoli: ["admin", "coordinatore"],
+  },
+  {
     id: "chat",
     label: "Assistente",
     icona: "✦",

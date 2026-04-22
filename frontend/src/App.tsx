@@ -10,11 +10,13 @@ import Skill from "./components/Skills";
 import PianiAssistenziali from "./components/PianiAssistenziali";
 import TipiServizio from "./components/TipiServizio";
 import GestioneAccount from "./components/GestioneAccount";
+import Dashboard from "./components/Dashboard";
 import Login from "./components/Login";
 
 import { auth } from "./api/client";
 
 export type Pagina =
+  | "dashboard"
   | "turni"
   | "operatori"
   | "utenti"
@@ -22,6 +24,8 @@ export type Pagina =
   | "indisponibilita"
   | "skill"
   | "servizi"
+  | "piani"
+  | "utenti-app"
   | "chat";
 
 interface Messaggio {
@@ -33,7 +37,7 @@ interface Messaggio {
 export default function App() {
   const [autenticato, setAutenticato] = useState<boolean | null>(null);
   const [utente, setUtente] = useState<any>(null);
-  const [pagina, setPagina] = useState<Pagina>("chat");
+  const [pagina, setPagina] = useState<Pagina>("dashboard");
   const [messaggi, setMessaggi] = useState<Messaggio[]>([
     {
       ruolo: "ai",
@@ -44,7 +48,6 @@ export default function App() {
 
   useEffect(() => {
     const token = localStorage.getItem("cm_token");
-    const utenteStr = localStorage.getItem("cm_utente");
     if (!token) {
       setAutenticato(false);
       return;
@@ -66,11 +69,6 @@ export default function App() {
     if (utente?.ruolo === "operatore") setPagina("turni");
   }, [utente]);
 
-  // aggiorna onLogin
-  function handleLogin(u: any) {
-    setAutenticato(true);
-    setUtente(u);
-  }
 
   if (autenticato === null) {
     return (
@@ -103,6 +101,7 @@ export default function App() {
       }}
       utente={utente}
     >
+      {pagina === "dashboard" && <Dashboard onNavigate={setPagina} />}
       {pagina === "turni" && <TurniGriglia />}
       {pagina === "operatori" && <Operatori />}
       {pagina === "utenti" && <Utenti />}

@@ -674,6 +674,7 @@ app.get("/api/briefing", async (req, res) => {
     operatoriAttivi,
     utentiAttivi,
     interventiSettimana,
+    interventiScoperti,
   ] = await Promise.all([
     prisma.intervento.findMany({
       where: { data: { gte: oggi, lte: fineOggi } },
@@ -687,6 +688,11 @@ app.get("/api/briefing", async (req, res) => {
     prisma.utente.count({ where: { attivo: true } }),
     prisma.intervento.count({
       where: { data: { gte: lunedi, lte: domenica } },
+    }),
+    prisma.intervento.findMany({
+      where: { data: { gte: oggi, lte: fineOggi }, operatoreId: null },
+      include: { utente: true, tipoServizio: true },
+      orderBy: { turno: "asc" },
     }),
   ]);
 
@@ -734,6 +740,13 @@ app.get("/api/briefing", async (req, res) => {
       motivo: i.motivo,
     })),
     utentiSenzaCopertura: utentiSenzaCopertura.map((u) => u.nome),
+    interventiScoperti: interventiScoperti.map((i) => ({
+      id: i.id,
+      utente: i.utente.nome,
+      servizio: i.tipoServizio?.nome ?? "—",
+      turno: i.turno,
+      durata: i.durata,
+    })),
     operatoriAttivi,
     utentiAttivi,
     interventiSettimana,
@@ -1013,6 +1026,98 @@ app.delete("/api/utenti-app/:id", async (req, res) => {
     data: { attivo: false },
   });
   res.json({ ok: true });
+});
+
+// Candidati idonei per un intervento scoperto
+app.get("/api/interventi/:id/candidati", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const intervento = await prisma.intervento.findUnique({
+      where: { id },
+      include: { tipoServizio: { include: { skills: true } }, utente: true },
+    });
+    if (!intervento) return res.status(404).json({ ok: false });
+
+    const inizioGiorno = new Date(intervento.data);
+    inizioGiorno.setHours(0, 0, 0, 0);
+    const fineGiorno = new Date(intervento.data);
+    fineGiorno.setHours(23, 59, 59, 999);
+
+    const skillNecessarie = new Set(
+      intervento.tipoServizio?.skills.map((s) => s.skillId) ?? [],
+    );
+
+    const [indisponibili, equipe, caricoOggi, operatori] = await Promise.all([
+      prisma.indisponibilita.findMany({
+        where: { data: { gte: inizioGiorno, lte: fineGiorno } },
+      }),
+      prisma.equipe.findFirst({
+        where: { utenteId: intervento.utenteId },
+        include: { membri: true },
+      }),
+      prisma.intervento.groupBy({
+        by: ["operatoreId"],
+        where: {
+          data: { gte: inizioGiorno, lte: fineGiorno },
+          operatoreId: { not: null },
+        },
+        _count: { id: true },
+        _sum: { durata: true },
+      }),
+      prisma.operatore.findMany({
+        where: { attivo: true },
+        include: { skills: true },
+      }),
+    ]);
+
+    const idIndisponibili = new Set(indisponibili.map((i) => i.operatoreId));
+    const idEquipe = new Set(equipe?.membri.map((m) => m.operatoreId) ?? []);
+    const carico = new Map(
+      caricoOggi.map((c) => [
+        c.operatoreId,
+        { count: c._count.id, durata: c._sum.durata ?? 0 },
+      ]),
+    );
+
+    const candidati = operatori
+      .filter((op) => !idIndisponibili.has(op.id))
+      .filter((op) => {
+        if (skillNecessarie.size === 0) return true;
+        const skillOp = new Set(op.skills.map((s) => s.skillId));
+        return [...skillNecessarie].every((s) => skillOp.has(s));
+      })
+      .map((op) => ({
+        id: op.id,
+        nome: op.nome,
+        qualifica: op.qualifica,
+        inEquipe: idEquipe.has(op.id),
+        interventiOggi: carico.get(op.id)?.count ?? 0,
+        minutiOggi: carico.get(op.id)?.durata ?? 0,
+      }))
+      .sort((a, b) => {
+        if (a.inEquipe !== b.inEquipe) return a.inEquipe ? -1 : 1;
+        return a.interventiOggi - b.interventiOggi;
+      });
+
+    res.json({ ok: true, candidati: candidati.slice(0, 6) });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+// Assegna un operatore a un intervento
+app.put("/api/interventi/:id/assegna", async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { operatoreId } = req.body;
+    await prisma.intervento.update({
+      where: { id },
+      data: { operatoreId },
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
 });
 
 app.use((req: any, res, next) => {
