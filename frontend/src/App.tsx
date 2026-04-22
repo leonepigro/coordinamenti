@@ -89,7 +89,7 @@ export default function App() {
   }
 
   if (!autenticato) {
-    return <Login onLogin={() => setAutenticato(true)} />;
+    return <Login onLogin={(u) => { setAutenticato(true); setUtente(u); }} />;
   }
   return (
     <Layout
