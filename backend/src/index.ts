@@ -941,7 +941,8 @@ app.post("/api/import/operatori", async (req, res) => {
         continue;
       }
       const coords = r.indirizzo ? await geocodifica(r.indirizzo) : null;
-      await prisma.operatore.create({
+      const emailNorm = r.email?.trim().toLowerCase() || null;
+      const operatore = await prisma.operatore.create({
         data: {
           nome: r.nome.trim(),
           qualifica: r.qualifica.trim(),
@@ -950,10 +951,24 @@ app.post("/api/import/operatori", async (req, res) => {
           telefono: r.telefono?.trim() ?? null,
           preferenzaTurno: r.preferenzaTurno?.trim() ?? "mattina",
           mezzoTrasporto: r.mezzoTrasporto?.trim() ?? "driving",
+          email: emailNorm,
           lat: coords?.lat,
           lon: coords?.lon,
         },
       });
+      if (emailNorm) {
+        await prisma.utenteApp.upsert({
+          where: { email: emailNorm },
+          update: { operatoreId: operatore.id, attivo: true },
+          create: {
+            email: emailNorm,
+            nome: r.nome.trim(),
+            ruolo: "operatore",
+            passwordHash: bcrypt.hashSync("coordinamenti2026", 10),
+            operatoreId: operatore.id,
+          },
+        });
+      }
       risultati.importati++;
     } catch (e) {
       risultati.errori.push(`Errore su ${r.nome}: ${String(e)}`);

@@ -37,6 +37,12 @@ const COLONNE_OPERATORI = [
     required: false,
     esempio: "driving",
   },
+  {
+    key: "email",
+    label: "Email",
+    required: false,
+    esempio: "maria.rossi@email.it",
+  },
 ];
 
 const COLONNE_UTENTI = [
