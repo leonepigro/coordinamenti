@@ -6,6 +6,6 @@
     "start": "cd backend && npm run deploy"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12.0"
   }
 }

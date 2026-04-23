@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -51,7 +51,7 @@ export default function InputIndirizzo({
   );
   const [cercando, setCercando] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [indirizzoReverso, setIndirizzoReverso] = useState("");
+  const [, setIndirizzoReverso] = useState("");
 
   // Geocoding inverso quando si clicca sulla mappa
   async function reverseGeocode(lat: number, lon: number) {

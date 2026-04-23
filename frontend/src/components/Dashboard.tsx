@@ -30,7 +30,7 @@ interface Candidato {
 }
 
 export default function Dashboard({
-  onNavigate,
+  onNavigate: _onNavigate,
 }: {
   onNavigate?: (p: Pagina) => void;
 }) {

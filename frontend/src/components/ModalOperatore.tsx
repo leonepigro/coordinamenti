@@ -18,6 +18,8 @@ interface OperatoreForm {
   email: string;
   skillIds: number[];
   mezzoTrasporto: string;
+  lat?: number;
+  lon?: number;
 }
 
 const QUALIFICHE = ["OSS", "Infermiere", "Fisioterapista", "ASA"];
