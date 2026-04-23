@@ -8,7 +8,9 @@
     "build": "tsc --outDir dist",
     "start": "node dist/index.js",
     "deploy": "prisma migrate deploy && node dist/index.js",
-    "dev": "nodemon --exec ts-node src/index.ts"
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "seed": "ts-node prisma/seed.ts",
+    "seed:auth": "ts-node prisma/seed-auth.ts"
   },
   "keywords": [],
   "author": "",
