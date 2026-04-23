@@ -2,6 +2,8 @@
 
 Applicazione web per la gestione dei turni di assistenza domiciliare. Permette alla coordinatrice di generare turni settimanali, ottimizzare i percorsi degli operatori e gestire assenze e sostituzioni — il tutto assistita da un'AI conversazionale.
 
+**[Guida alle funzionalità →](https://htmlpreview.github.io/?https://github.com/leonepigro/coordinamenti/blob/main/infografica.html)**
+
 ---
 
 ## Funzionalità principali
