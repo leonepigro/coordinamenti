@@ -180,6 +180,22 @@ app.get("/api/interventi", async (req, res) => {
   res.json(interventi);
 });
 // --- SKILL ---
+app.get("/api/qualifiche", async (req, res) => {
+  const qualifiche = await prisma.qualifica.findMany({ orderBy: { nome: "asc" } });
+  res.json(qualifiche);
+});
+
+app.post("/api/qualifiche", async (req, res) => {
+  const { nome } = req.body;
+  if (!nome?.trim()) return res.status(400).json({ errore: "Nome obbligatorio" });
+  try {
+    const q = await prisma.qualifica.create({ data: { nome: nome.trim() } });
+    res.json(q);
+  } catch {
+    res.status(400).json({ errore: "Qualifica già esistente" });
+  }
+});
+
 app.get("/api/skill", async (req, res) => {
   const skill = await prisma.skill.findMany({ orderBy: { nome: "asc" } });
   res.json(skill);

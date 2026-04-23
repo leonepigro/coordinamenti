@@ -27,6 +27,11 @@ model Operatore {
   utenteApp   UtenteApp?
 }
 
+model Qualifica {
+  id   Int    @id @default(autoincrement())
+  nome String @unique
+}
+
 model Skill {
   id          Int              @id @default(autoincrement())
   nome        String           @unique  // es. "Patente B", "Medicazioni", "Fisioterapia"

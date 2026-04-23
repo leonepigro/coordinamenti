@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Modal from "./Modal";
-import { skill as apiSkill, operatori as apiOperatori } from "../api/client";
+import { skill as apiSkill, operatori as apiOperatori, qualifiche as apiQualifiche } from "../api/client";
 import InputIndirizzo from "./InputIndirizzo";
 
 interface Skill {
@@ -22,7 +22,6 @@ interface OperatoreForm {
   lon?: number;
 }
 
-const QUALIFICHE = ["OSS", "Infermiere", "Fisioterapista", "ASA"];
 const TURNI = ["mattina", "pomeriggio"];
 const MEZZI = [
   { value: "driving", label: "Auto privata" },
@@ -41,7 +40,7 @@ export default function ModalOperatore({
 }) {
   const [form, setForm] = useState<OperatoreForm>({
     nome: operatore?.nome ?? "",
-    qualifica: operatore?.qualifica ?? "OSS",
+    qualifica: operatore?.qualifica ?? "",
     oreSettimanali: operatore?.oreSettimanali ?? 36,
     preferenzaTurno: operatore?.preferenzaTurno ?? "mattina",
     telefono: operatore?.telefono ?? "",
@@ -54,12 +53,29 @@ export default function ModalOperatore({
   });
   const [skillDisponibili, setSkillDisponibili] = useState<Skill[]>([]);
   const [nuovaSkill, setNuovaSkill] = useState("");
+  const [qualificheDisponibili, setQualificheDisponibili] = useState<{ id: number; nome: string }[]>([]);
+  const [nuovaQualifica, setNuovaQualifica] = useState("");
+  const [aggiungendoQualifica, setAggiungendoQualifica] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [errore, setErrore] = useState("");
 
   useEffect(() => {
     apiSkill.lista().then((r) => setSkillDisponibili(r.data));
+    apiQualifiche.lista().then((r) => {
+      setQualificheDisponibili(r.data);
+      if (!operatore?.qualifica && r.data.length > 0)
+        setForm((f) => ({ ...f, qualifica: f.qualifica || r.data[0].nome }));
+    });
   }, []);
+
+  async function aggiungiQualifica() {
+    if (!nuovaQualifica.trim()) return;
+    const res = await apiQualifiche.crea(nuovaQualifica.trim());
+    setQualificheDisponibili((prev) => [...prev, res.data].sort((a, b) => a.nome.localeCompare(b.nome)));
+    setForm((f) => ({ ...f, qualifica: res.data.nome }));
+    setNuovaQualifica("");
+    setAggiungendoQualifica(false);
+  }
 
   function toggleSkill(id: number) {
     setForm((f) => ({
@@ -150,17 +166,33 @@ export default function ModalOperatore({
         >
           <div>
             <label style={labelStyle}>Qualifica *</label>
-            <select
-              value={form.qualifica}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, qualifica: e.target.value }))
-              }
-              style={inputStyle}
-            >
-              {QUALIFICHE.map((q) => (
-                <option key={q}>{q}</option>
-              ))}
-            </select>
+            {aggiungendoQualifica ? (
+              <div style={{ display: "flex", gap: 6 }}>
+                <input
+                  autoFocus
+                  value={nuovaQualifica}
+                  onChange={(e) => setNuovaQualifica(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") aggiungiQualifica(); if (e.key === "Escape") setAggiungendoQualifica(false); }}
+                  style={{ ...inputStyle, flex: 1 }}
+                  placeholder="Es. Fisioterapista"
+                />
+                <button type="button" onClick={aggiungiQualifica} style={btnSecondarioStyle}>✓</button>
+                <button type="button" onClick={() => setAggiungendoQualifica(false)} style={btnSecondarioStyle}>✕</button>
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: 6 }}>
+                <select
+                  value={form.qualifica}
+                  onChange={(e) => setForm((f) => ({ ...f, qualifica: e.target.value }))}
+                  style={{ ...inputStyle, flex: 1 }}
+                >
+                  {qualificheDisponibili.map((q) => (
+                    <option key={q.id} value={q.nome}>{q.nome}</option>
+                  ))}
+                </select>
+                <button type="button" onClick={() => setAggiungendoQualifica(true)} style={btnSecondarioStyle} title="Aggiungi qualifica">+</button>
+              </div>
+            )}
           </div>
           <div>
             <label style={labelStyle}>Ore settimanali</label>

@@ -25,6 +25,11 @@ export const interventi = {
     api.delete("/interventi", { params: { dataInizio, dataFine } }),
 };
 
+export const qualifiche = {
+  lista: () => api.get("/qualifiche"),
+  crea: (nome: string) => api.post("/qualifiche", { nome }),
+};
+
 export const skill = {
   lista: () => api.get("/skill"),
   crea: (data: { nome: string; descrizione?: string }) =>
