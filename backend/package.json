@@ -6,6 +6,8 @@
     "test": "jest --forceExit",
     "test:watch": "jest --watch",
     "build": "tsc --outDir dist",
+    "start": "node dist/index.js",
+    "deploy": "prisma migrate deploy && node dist/index.js",
     "dev": "nodemon --exec ts-node src/index.ts"
   },
   "keywords": [],

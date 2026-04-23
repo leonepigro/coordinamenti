@@ -1477,5 +1477,6 @@ app.get(/^(?!\/api).*/, (_req, res) => {
 export default app;
 
 if (require.main === module) {
-  app.listen(3001, () => console.log("Backend su http://localhost:3001"));
+  const PORT = parseInt(process.env.PORT ?? "3001");
+  app.listen(PORT, () => console.log(`Backend su http://localhost:${PORT}`));
 }
