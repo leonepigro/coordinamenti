@@ -1474,4 +1474,8 @@ app.get(/^(?!\/api).*/, (_req, res) => {
   res.sendFile(path.join(frontendDist, "index.html"));
 });
 
-app.listen(3001, () => console.log("Backend su http://localhost:3001"));
+export default app;
+
+if (require.main === module) {
+  app.listen(3001, () => console.log("Backend su http://localhost:3001"));
+}
