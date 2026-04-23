@@ -1,5 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import { PrismaPg } from "@prisma/adapter-pg";
+import { config } from "dotenv";
+config();
+const prisma = new PrismaClient({ adapter: new PrismaPg(process.env.DATABASE_URL!) });
 
 async function main() {
   const operatori = await prisma.operatore.findMany();
