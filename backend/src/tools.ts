@@ -1,5 +1,6 @@
 import { generaTurni, salvaAssegnazioni } from "./scheduler";
 import { ottimizzaGiornata } from "./router";
+import { inviaRiepilogoGiornaliero, inviaAggiornamentoPianificazione } from "./notifiche";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
@@ -159,6 +160,58 @@ export const toolDefinitions = [
       description:
         "Restituisce statistiche generali: numero operatori, utenti, interventi della settimana corrente, ore pianificate.",
       parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "get_qualifiche",
+      description: "Restituisce tutte le qualifiche professionali disponibili nel sistema.",
+      parameters: { type: "object", properties: {} },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "aggiungi_qualifica",
+      description: "Aggiunge una nuova qualifica professionale al sistema (es. Fisioterapista, Infermiere).",
+      parameters: {
+        type: "object",
+        properties: {
+          nome: { type: "string", description: "Nome della qualifica da aggiungere" },
+        },
+        required: ["nome"],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "invia_email_riepilogo",
+      description:
+        "Invia via email il riepilogo degli interventi del giorno agli operatori che hanno un indirizzo email e almeno un intervento pianificato.",
+      parameters: {
+        type: "object",
+        properties: {
+          data: { type: "string", description: "Data YYYY-MM-DD per cui inviare il riepilogo (default: oggi)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "invia_email_aggiornamento",
+      description:
+        "Invia via email gli aggiornamenti della pianificazione agli operatori per un intervallo di date. Utile dopo aver generato o modificato i turni.",
+      parameters: {
+        type: "object",
+        properties: {
+          dataInizio: { type: "string", description: "Data inizio YYYY-MM-DD" },
+          dataFine: { type: "string", description: "Data fine YYYY-MM-DD" },
+        },
+        required: ["dataInizio", "dataFine"],
+      },
     },
   },
 ];
@@ -440,6 +493,47 @@ export async function eseguiTool(nome: string, args: any): Promise<string> {
         interventiSettimana: nInterventi,
         orePianificate: orePianificate.toFixed(1),
         indisponibilitaFuture: nIndisponibilita,
+      });
+    }
+
+    case "get_qualifiche": {
+      const qualifiche = await prisma.qualifica.findMany({ orderBy: { nome: "asc" } });
+      return JSON.stringify(qualifiche);
+    }
+
+    case "aggiungi_qualifica": {
+      if (!args.nome?.trim()) return JSON.stringify({ errore: "Nome obbligatorio" });
+      try {
+        const q = await prisma.qualifica.create({ data: { nome: args.nome.trim() } });
+        return JSON.stringify({ ok: true, qualifica: q });
+      } catch {
+        return JSON.stringify({ errore: "Qualifica già esistente" });
+      }
+    }
+
+    case "invia_email_riepilogo": {
+      const data = args.data ? new Date(args.data) : new Date();
+      const inviati = await inviaRiepilogoGiornaliero(data);
+      return JSON.stringify({
+        ok: true,
+        inviati,
+        messaggio: inviati === 0
+          ? "Nessuna email inviata (nessun operatore con email e interventi, oppure RESEND non configurato)"
+          : `${inviati} email inviate con successo`,
+      });
+    }
+
+    case "invia_email_aggiornamento": {
+      const inviati = await inviaAggiornamentoPianificazione(
+        new Date(args.dataInizio),
+        new Date(args.dataFine),
+      );
+      return JSON.stringify({
+        ok: true,
+        inviati,
+        messaggio: inviati === 0
+          ? "Nessuna email inviata"
+          : `${inviati} email inviate per il periodo`,
       });
     }
 
