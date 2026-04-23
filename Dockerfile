@@ -13,6 +13,7 @@ RUN cd frontend && npm run build
 COPY backend/package*.json ./backend/
 COPY backend/prisma ./backend/prisma/
 COPY backend/tsconfig*.json ./backend/
+COPY backend/prisma.config.ts ./backend/
 
 RUN cd backend && npm ci
 
