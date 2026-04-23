@@ -311,6 +311,11 @@ app.put("/api/operatori/:id", async (req, res) => {
 
   if (email?.trim()) {
     const emailNorm = email.toLowerCase().trim();
+    // Disconnetti il vecchio UtenteApp di questo operatore se ha email diversa
+    await prisma.utenteApp.updateMany({
+      where: { operatoreId: id, email: { not: emailNorm } },
+      data: { operatoreId: null },
+    });
     await prisma.utenteApp.upsert({
       where: { email: emailNorm },
       update: { operatoreId: id, attivo: true },
@@ -321,6 +326,12 @@ app.put("/api/operatori/:id", async (req, res) => {
         passwordHash: bcrypt.hashSync("coordinamenti2026", 10),
         operatoreId: id,
       },
+    });
+  } else {
+    // Email rimossa: disconnetti senza eliminare l'account
+    await prisma.utenteApp.updateMany({
+      where: { operatoreId: id },
+      data: { operatoreId: null },
     });
   }
 
