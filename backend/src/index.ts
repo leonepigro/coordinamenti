@@ -30,6 +30,8 @@ const PAOLA_HASH = bcrypt.hashSync(
   10,
 );
 import { generaTurni, salvaAssegnazioni } from "./scheduler";
+import { inviaRiepilogoGiornaliero, inviaAggiornamentoPianificazione } from "./notifiche";
+import cron from "node-cron";
 
 app.post("/api/scheduling/genera", async (req, res) => {
   try {
@@ -37,19 +39,44 @@ app.post("/api/scheduling/genera", async (req, res) => {
     const inizio = new Date(dataInizio);
     const fine = new Date(dataFine);
 
-    const assegnazioni = await generaTurni(inizio, fine);
-    await salvaAssegnazioni(assegnazioni);
+    const { assegnate, scoperti } = await generaTurni(inizio, fine);
+    await salvaAssegnazioni(assegnate, scoperti);
+
+    // Invia email aggiornamento agli operatori coinvolti (non-blocking)
+    inviaAggiornamentoPianificazione(inizio, fine).catch((e) =>
+      console.error("[notifiche] errore invio email:", e),
+    );
 
     res.json({
       ok: true,
-      totale: assegnazioni.length,
-      assegnazioni,
+      assegnati: assegnate.length,
+      scoperti: scoperti.length,
     });
   } catch (e) {
     console.error(e);
     res.status(500).json({ ok: false, error: String(e) });
   }
 });
+
+// Endpoint per testare l'invio manuale (solo admin)
+app.post("/api/notifiche/test", async (req, res) => {
+  try {
+    const data = req.body.data ? new Date(req.body.data) : new Date();
+    const inviati = await inviaRiepilogoGiornaliero(data);
+    res.json({ ok: true, inviati });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
+// Cron: ogni mattina alle 6:30 invia il riepilogo del giorno agli operatori
+cron.schedule("30 6 * * *", () => {
+  console.log("[cron] Invio riepilogo giornaliero...");
+  inviaRiepilogoGiornaliero(new Date()).catch((e) =>
+    console.error("[cron] errore:", e),
+  );
+}, { timezone: "Europe/Rome" });
 
 import { ottimizzaGiornata, geocodifica } from "./router";
 
@@ -192,6 +219,7 @@ app.post("/api/operatori", async (req, res) => {
     skillIds,
     lat,
     lon,
+    email,
   } = req.body;
   const coords = lat && lon ? { lat, lon } : await geocodifica(indirizzo);
   const operatore = await prisma.operatore.create({
@@ -203,12 +231,29 @@ app.post("/api/operatori", async (req, res) => {
       preferenzaTurno,
       telefono,
       mezzoTrasporto,
+      email: email?.toLowerCase().trim() || null,
       lat: coords?.lat,
       lon: coords?.lon,
       skills: { create: skillIds.map((id: number) => ({ skillId: id })) },
     },
     include: { skills: { include: { skill: true } } },
   });
+
+  if (email?.trim()) {
+    const emailNorm = email.toLowerCase().trim();
+    await prisma.utenteApp.upsert({
+      where: { email: emailNorm },
+      update: { operatoreId: operatore.id, attivo: true },
+      create: {
+        email: emailNorm,
+        nome,
+        ruolo: "operatore",
+        passwordHash: bcrypt.hashSync("coordinamenti2026", 10),
+        operatoreId: operatore.id,
+      },
+    });
+  }
+
   res.json(operatore);
 });
 
@@ -225,6 +270,7 @@ app.put("/api/operatori/:id", async (req, res) => {
     skillIds,
     lat,
     lon,
+    email,
   } = req.body;
   const coords = lat && lon ? { lat, lon } : await geocodifica(indirizzo);
   await prisma.operatoreSkill.deleteMany({ where: { operatoreId: id } });
@@ -238,12 +284,29 @@ app.put("/api/operatori/:id", async (req, res) => {
       preferenzaTurno,
       telefono,
       mezzoTrasporto,
+      email: email?.toLowerCase().trim() || null,
       lat: coords?.lat,
       lon: coords?.lon,
       skills: { create: skillIds.map((id: number) => ({ skillId: id })) },
     },
     include: { skills: { include: { skill: true } } },
   });
+
+  if (email?.trim()) {
+    const emailNorm = email.toLowerCase().trim();
+    await prisma.utenteApp.upsert({
+      where: { email: emailNorm },
+      update: { operatoreId: id, attivo: true },
+      create: {
+        email: emailNorm,
+        nome,
+        ruolo: "operatore",
+        passwordHash: bcrypt.hashSync("coordinamenti2026", 10),
+        operatoreId: id,
+      },
+    });
+  }
+
   res.json(operatore);
 });
 

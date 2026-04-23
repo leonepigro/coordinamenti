@@ -56,6 +56,10 @@ export default function TurniGriglia() {
   const [rangeFine, setRangeFine] = useState(
     format(addDays(new Date(), 6), "yyyy-MM-dd"),
   );
+  const [esitoGenerazione, setEsitoGenerazione] = useState<{
+    assegnati: number;
+    scoperti: number;
+  } | null>(null);
 
   const { dataInizio, dataFine } = useMemo(() => {
     if (vista === "giorno") {
@@ -107,9 +111,10 @@ export default function TurniGriglia() {
   async function genera() {
     setGenerando(true);
     try {
-      await scheduling.genera(rangeInizio, rangeFine);
+      const res = await scheduling.genera(rangeInizio, rangeFine);
       setRefresh((r) => r + 1);
       setMostraRange(false);
+      setEsitoGenerazione({ assegnati: res.data.assegnati, scoperti: res.data.scoperti });
     } finally {
       setGenerando(false);
     }
@@ -279,6 +284,38 @@ export default function TurniGriglia() {
         </div>
       )}
 
+      {/* Esito generazione */}
+      {esitoGenerazione && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            padding: "12px 18px",
+            borderRadius: 12,
+            marginBottom: 16,
+            background: esitoGenerazione.scoperti > 0 ? "#FEF3E8" : "#EDF7EE",
+            border: `1px solid ${esitoGenerazione.scoperti > 0 ? "#F2B97F" : "#90C49A"}`,
+            fontSize: 13,
+          }}
+        >
+          <span style={{ color: esitoGenerazione.scoperti > 0 ? "#8B4E10" : "#2D6B38", flex: 1 }}>
+            Piano generato: <strong>{esitoGenerazione.assegnati}</strong> interventi assegnati
+            {esitoGenerazione.scoperti > 0 && (
+              <span style={{ color: "#C94040", fontWeight: 500 }}>
+                {" "}· {esitoGenerazione.scoperti} scoperti — assegnali manualmente dalla vista giorno
+              </span>
+            )}
+          </span>
+          <button
+            onClick={() => setEsitoGenerazione(null)}
+            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "var(--grigio)", padding: 0 }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       {/* Controlli vista */}
       <div
         style={{
@@ -356,6 +393,7 @@ export default function TurniGriglia() {
                   i.data.slice(0, 10) === format(dataCorrente, "yyyy-MM-dd"),
               )}
               coloriMappa={coloriMappa}
+              onRefresh={() => setRefresh((r) => r + 1)}
             />
           )}
           {vista === "settimana" && (
@@ -437,15 +475,20 @@ function VistaGiorno({
   giorno,
   interventi,
   coloriMappa,
+  onRefresh,
 }: {
   giorno: Date;
   interventi: Intervento[];
   coloriMappa: Map<string, number>;
+  onRefresh: () => void;
 }) {
   const [percorsi, setPercorsi] = useState<
     Record<number, { link: string; mezzo: string }>
   >({});
   const [ottimizzando, setOttimizzando] = useState<number | null>(null);
+  const [assegna, setAssegna] = useState<{ id: number; nome: string } | null>(null);
+  const [candidati, setCandidati] = useState<any[]>([]);
+  const [assegnando, setAssegnando] = useState(false);
 
   const mattina = interventi.filter((i) => i.turno === "mattina");
   const pomeriggio = interventi.filter((i) => i.turno === "pomeriggio");
@@ -477,6 +520,25 @@ function VistaGiorno({
         }));
     } finally {
       setOttimizzando(null);
+    }
+  }
+
+  async function apriAssegna(i: Intervento) {
+    setAssegna({ id: i.id, nome: i.utente.nome });
+    setCandidati([]);
+    const res = await api.get(`/interventi/${i.id}/candidati`);
+    setCandidati(res.data);
+  }
+
+  async function confermaAssegna(operatoreId: number) {
+    if (!assegna) return;
+    setAssegnando(true);
+    try {
+      await api.put(`/interventi/${assegna.id}/assegna`, { operatoreId });
+      setAssegna(null);
+      onRefresh();
+    } finally {
+      setAssegnando(false);
     }
   }
 
@@ -625,18 +687,21 @@ function VistaGiorno({
                 </div>
               )}
               {items.map((i) => {
-                const c = i.operatore
-                  ? getColoreOperatore(i.operatore.nome, coloriMappa)
-                  : null;
+                const scoperto = !i.operatore;
+                const c = scoperto
+                  ? null
+                  : getColoreOperatore(i.operatore!.nome, coloriMappa);
                 return (
                   <div
                     key={i.id}
                     style={{
                       padding: "10px 14px",
                       borderRadius: 10,
-                      border: "1px solid var(--bordo)",
-                      background: "var(--bianco)",
-                      borderLeft: c
+                      border: scoperto ? "1px solid #F2B97F" : "1px solid var(--bordo)",
+                      background: scoperto ? "#FEF3E8" : "var(--bianco)",
+                      borderLeft: scoperto
+                        ? "3px solid #C94040"
+                        : c
                         ? `3px solid ${c.border}`
                         : "1px solid var(--bordo)",
                     }}
@@ -669,24 +734,44 @@ function VistaGiorno({
                         </div>
                       </div>
                       <div style={{ textAlign: "right" }}>
-                        <div
-                          style={{
-                            fontSize: 12,
-                            color: c?.color ?? "var(--grigio)",
-                            fontWeight: 500,
-                          }}
-                        >
-                          {i.operatore?.nome.split(" ")[1] ?? "—"}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: 11,
-                            color: "var(--grigio)",
-                            marginTop: 2,
-                          }}
-                        >
-                          {i.durata}min
-                        </div>
+                        {scoperto ? (
+                          <button
+                            onClick={() => apriAssegna(i)}
+                            style={{
+                              fontSize: 12,
+                              padding: "4px 12px",
+                              borderRadius: 6,
+                              border: "1px solid #C94040",
+                              background: "#C94040",
+                              color: "#fff",
+                              cursor: "pointer",
+                              fontWeight: 500,
+                            }}
+                          >
+                            Assegna
+                          </button>
+                        ) : (
+                          <>
+                            <div
+                              style={{
+                                fontSize: 12,
+                                color: c?.color ?? "var(--grigio)",
+                                fontWeight: 500,
+                              }}
+                            >
+                              {i.operatore?.nome.split(" ")[1] ?? "—"}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: 11,
+                                color: "var(--grigio)",
+                                marginTop: 2,
+                              }}
+                            >
+                              {i.durata}min
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -696,6 +781,85 @@ function VistaGiorno({
           </div>
         ))}
       </div>
+
+      {/* Modal assegnazione manuale */}
+      {assegna && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.35)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={() => setAssegna(null)}
+        >
+          <div
+            style={{
+              background: "var(--bianco)",
+              borderRadius: 16,
+              padding: 28,
+              width: 380,
+              maxWidth: "90vw",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--inchiostro)", marginBottom: 4 }}>
+              Assegna operatore
+            </div>
+            <div style={{ fontSize: 13, color: "var(--grigio)", marginBottom: 20 }}>
+              {assegna.nome}
+            </div>
+            {candidati.length === 0 ? (
+              <div style={{ fontSize: 13, color: "var(--grigio)", textAlign: "center", padding: "24px 0" }}>
+                Nessun operatore disponibile
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {candidati.map((c: any) => (
+                  <button
+                    key={c.id}
+                    onClick={() => confermaAssegna(c.id)}
+                    disabled={assegnando}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "12px 16px",
+                      borderRadius: 10,
+                      border: "1px solid var(--bordo)",
+                      background: c.inEquipe ? "var(--sabbia)" : "var(--bianco)",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      width: "100%",
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--inchiostro)" }}>
+                        {c.nome}
+                        {c.inEquipe && (
+                          <span style={{ fontSize: 11, color: "var(--terra)", marginLeft: 8, fontWeight: 400 }}>
+                            equipe
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 2 }}>
+                        {c.qualifica}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--grigio)", textAlign: "right" }}>
+                      <div>{c.interventiOggi} oggi</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -715,7 +879,7 @@ function VistaSettimana({
 }) {
   const giorni = eachDayOfInterval({ start: dataInizio, end: dataFine });
 
-  if (operatoriUnici.length === 0) {
+  if (operatoriUnici.length === 0 && !interventi.some((i) => !i.operatore)) {
     return (
       <div
         style={{
@@ -838,6 +1002,55 @@ function VistaSettimana({
               </tr>
             );
           })}
+          {/* Riga scoperti */}
+          {(() => {
+            const scopertiPerGiorno = giorni.map((g) =>
+              interventi.filter(
+                (i) => i.data.slice(0, 10) === format(g, "yyyy-MM-dd") && !i.operatore,
+              ),
+            );
+            const haScoperti = scopertiPerGiorno.some((s) => s.length > 0);
+            if (!haScoperti) return null;
+            return (
+              <tr>
+                <td style={{ ...tdStyle, fontWeight: 500, color: "#C94040", fontSize: 12, whiteSpace: "nowrap" }}>
+                  Da assegnare
+                </td>
+                {scopertiPerGiorno.map((scoperti, idx) => (
+                  <td
+                    key={idx}
+                    style={{
+                      ...tdStyle,
+                      verticalAlign: "top",
+                      background: isToday(giorni[idx]) ? "var(--sabbia)" : "transparent",
+                    }}
+                  >
+                    {scoperti.map((i) => (
+                      <div
+                        key={i.id}
+                        style={{
+                          background: "#FEF3E8",
+                          color: "#8B4E10",
+                          border: "1px solid #F2B97F",
+                          borderRadius: 6,
+                          padding: "4px 8px",
+                          marginBottom: 4,
+                          fontSize: 11,
+                          lineHeight: 1.4,
+                        }}
+                      >
+                        <div style={{ fontWeight: 500 }}>{i.tipoServizio?.nome ?? "—"}</div>
+                        <div style={{ opacity: 0.75 }}>{i.utente.nome.split(" ").slice(-1)[0]}</div>
+                      </div>
+                    ))}
+                    {scoperti.length === 0 && (
+                      <span style={{ color: "var(--bordo)", fontSize: 12 }}>—</span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            );
+          })()}
         </tbody>
       </table>
     </div>

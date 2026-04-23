@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: coordinamenti_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: coordinamenti
+      POSTGRES_USER: coordinamenti
+      POSTGRES_PASSWORD: coordinamenti2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - coordinamenti_pgdata:/var/lib/postgresql/data
+
+volumes:
+  coordinamenti_pgdata:

@@ -15,8 +15,9 @@ interface OperatoreForm {
   indirizzo: string;
   preferenzaTurno: string;
   telefono: string;
+  email: string;
   skillIds: number[];
-  mezzotrasporto: string;
+  mezzoTrasporto: string;
 }
 
 const QUALIFICHE = ["OSS", "Infermiere", "Fisioterapista", "ASA"];
@@ -42,6 +43,7 @@ export default function ModalOperatore({
     oreSettimanali: operatore?.oreSettimanali ?? 36,
     preferenzaTurno: operatore?.preferenzaTurno ?? "mattina",
     telefono: operatore?.telefono ?? "",
+    email: operatore?.email ?? "",
     skillIds: operatore?.skills?.map((s: any) => s.skillId) ?? [],
     mezzoTrasporto: operatore?.mezzoTrasporto ?? "foot",
     indirizzo: operatore?.indirizzo ?? "",
@@ -123,6 +125,16 @@ export default function ModalOperatore({
               }
               style={inputStyle}
               placeholder="333-1234567"
+            />
+          </div>
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={labelStyle}>Email (per ricezione turni)</label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              style={inputStyle}
+              placeholder="maria.rossi@email.it"
             />
           </div>
         </div>

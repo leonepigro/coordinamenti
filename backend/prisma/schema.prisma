@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./turni.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Operatore {
@@ -23,7 +23,8 @@ model Operatore {
   equipe          EquipeMembro[]
   interventi      Intervento[]
   indisponibilita Indisponibilita[]
-  mezzoTrasporto  String  @default("foot")  // driving | cycling | foot 
+  mezzoTrasporto  String  @default("foot")  // driving | cycling | foot
+  email           String?
   utenteApp   UtenteApp?
 }
 

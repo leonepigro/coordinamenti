@@ -235,6 +235,18 @@ export default function Layout({
             borderTop: "1px solid rgba(255,255,255,0.06)",
           }}
         >
+          <img
+            src="/logo.png"
+            alt="Logo cooperativa"
+            style={{
+              width: "100%",
+              maxHeight: 48,
+              objectFit: "contain",
+              objectPosition: "left center",
+              marginBottom: 12,
+              opacity: 0.85,
+            }}
+          />
           <div style={{ fontSize: 11, color: "var(--grigio)" }}>
             AI · Ollama → Groq
           </div>

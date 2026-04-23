@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coordina·menti — Guida funzionalità</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: #f5f0ea;
+      color: #2C1810;
+      min-height: 100vh;
+    }
+
+    /* ── HERO ─────────────────────────────────────────────── */
+    .hero {
+      background: #2C1810;
+      padding: 52px 48px 44px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 32px;
+    }
+    .hero-left { flex: 1; }
+    .hero-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: #C4714A;
+      margin-bottom: 8px;
+    }
+    .hero-title {
+      font-size: 42px;
+      font-weight: 300;
+      color: #fff;
+      font-style: italic;
+      line-height: 1.1;
+      margin-bottom: 14px;
+    }
+    .hero-title strong { font-weight: 700; font-style: normal; }
+    .hero-sub {
+      font-size: 15px;
+      color: rgba(255,255,255,.55);
+      font-weight: 400;
+      max-width: 480px;
+      line-height: 1.6;
+    }
+    .hero-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .hero-badge {
+      background: rgba(196,113,74,.15);
+      border: 1px solid rgba(196,113,74,.35);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 12px;
+      color: #C4714A;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* ── LAYOUT ──────────────────────────────────────────── */
+    .page { max-width: 1280px; margin: 0 auto; padding: 40px 32px 60px; }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: #C4714A;
+      margin-bottom: 20px;
+      padding-left: 2px;
+    }
+
+    /* ── GRID ────────────────────────────────────────────── */
+    .grid {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+    /* ── CARD ────────────────────────────────────────────── */
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 24px;
+      border: 1px solid #ede8e2;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--accent, #C4714A);
+    }
+    .card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--icon-bg, #fdf0e8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .card-header { display: flex; align-items: center; gap: 12px; }
+    .card-title { font-size: 15px; font-weight: 700; color: #1a1009; }
+    .card-desc { font-size: 13px; color: #6b5a4e; line-height: 1.5; }
+    .card-features {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .feature {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-size: 12.5px;
+      color: #4a3a30;
+      line-height: 1.45;
+    }
+    .feature-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--accent, #C4714A);
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+
+    /* ── CARD ACCENTI ─────────────────────────────────────── */
+    .accent-terracotta { --accent: #C4714A; --icon-bg: #fdf0e8; }
+    .accent-green      { --accent: #5A7A6A; --icon-bg: #eef3f0; }
+    .accent-brown      { --accent: #8B6E5A; --icon-bg: #f5ede8; }
+    .accent-indigo     { --accent: #5C6B9A; --icon-bg: #eef0f8; }
+    .accent-gold       { --accent: #A0813A; --icon-bg: #faf3e4; }
+    .accent-rose       { --accent: #9E5C6A; --icon-bg: #f8edf0; }
+
+    /* ── HERO CARD (grande) ──────────────────────────────── */
+    .card-hero {
+      grid-column: span 2;
+      flex-direction: row;
+      gap: 28px;
+    }
+    .card-hero .card-body { flex: 1; }
+    .card-hero .card-visual {
+      width: 180px;
+      flex-shrink: 0;
+      background: var(--icon-bg);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+    }
+
+    /* ── STAT ROW ────────────────────────────────────────── */
+    .stat-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .stat-pill {
+      background: var(--icon-bg);
+      border: 1px solid var(--accent);
+      border-radius: 20px;
+      padding: 3px 11px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      white-space: nowrap;
+    }
+
+    /* ── FLUSSO ──────────────────────────────────────────── */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      background: #fff;
+      border-radius: 14px;
+      border: 1px solid #ede8e2;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .flow-step {
+      flex: 1;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      position: relative;
+    }
+    .flow-step + .flow-step::before {
+      content: '→';
+      position: absolute;
+      left: -12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 18px;
+      color: #C4714A;
+      font-weight: 700;
+    }
+    .flow-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #C4714A;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .flow-title { font-size: 13px; font-weight: 700; color: #1a1009; }
+    .flow-desc { font-size: 11.5px; color: #6b5a4e; line-height: 1.4; }
+
+    /* ── EMAIL PREVIEW ───────────────────────────────────── */
+    .email-preview {
+      background: #2C1810;
+      border-radius: 14px;
+      padding: 24px;
+      color: #fff;
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .email-preview-icon { font-size: 48px; }
+    .email-preview-body { flex: 1; }
+    .email-preview-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .email-preview-desc { font-size: 13px; color: rgba(255,255,255,.6); line-height: 1.5; }
+    .email-preview-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .email-tag {
+      background: rgba(196,113,74,.2);
+      border: 1px solid rgba(196,113,74,.4);
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 11px;
+      color: #C4714A;
+      font-weight: 600;
+    }
+
+    /* ── FOOTER ──────────────────────────────────────────── */
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: #b8a898;
+      padding-top: 32px;
+      border-top: 1px solid #e8e1d8;
+      margin-top: 40px;
+    }
+
+    /* ── DIVIDER ─────────────────────────────────────────── */
+    .divider { height: 32px; }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 12mm 12mm 14mm 12mm;
+      }
+
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      body { background: #f5f0ea !important; font-size: 11px; }
+
+      .hero {
+        padding: 24px 28px 20px;
+        border-radius: 0;
+      }
+      .hero-title { font-size: 28px; }
+      .hero-sub { font-size: 12px; }
+
+      .page { padding: 16px 0 0; max-width: 100%; }
+
+      /* Evita tagli dentro ogni blocco */
+      .card, .flow, .email-preview, .flow-step { break-inside: avoid; }
+
+      /* Griglia: massimo 2 colonne su A4 */
+      .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr) !important; }
+      .grid-2           { grid-template-columns: repeat(2, 1fr) !important; }
+
+      /* Le card che occupano 2 colonne tornano a 1 su stampa stretta */
+      .card[style*="grid-column: span 2"] { grid-column: span 2 !important; }
+
+      /* Sezioni: inizia nuova pagina se non c'è spazio */
+      .section-label { break-before: auto; margin-top: 16px; }
+
+      /* Riduci spaziature */
+      .divider { height: 14px; }
+      .card { padding: 16px; gap: 10px; }
+      .card-icon { width: 32px; height: 32px; font-size: 16px; }
+      .card-title { font-size: 12px; }
+      .card-desc { font-size: 11px; }
+      .feature { font-size: 11px; }
+
+      .flow-step { padding: 14px 12px; }
+      .flow-title { font-size: 11px; }
+      .flow-desc { font-size: 10px; }
+
+      .email-preview { padding: 16px; gap: 16px; }
+      .email-preview-icon { font-size: 32px; }
+      .email-preview-title { font-size: 13px; }
+      .email-preview-desc { font-size: 11px; }
+
+      .footer { margin-top: 16px; padding-top: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">Guida alle funzionalità</div>
+    <div class="hero-title">Coordina<strong>menti</strong></div>
+    <div class="hero-sub">
+      Il tuo strumento per pianificare i turni domiciliari, gestire gli operatori
+      e coordinare i piani assistenziali — tutto in un'unica piattaforma.
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="hero-badge">Gestione turni</div>
+    <div class="hero-badge">Assistente AI</div>
+    <div class="hero-badge">Email automatiche</div>
+    <div class="hero-badge">Mappa interattiva</div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- ── SEZIONE 1: OPERATIVITÀ QUOTIDIANA ────────────── -->
+  <div class="section-label">Operatività quotidiana</div>
+
+  <div class="grid grid-3">
+
+    <!-- Dashboard -->
+    <div class="card accent-terracotta" style="grid-column: span 2;">
+      <div class="card-header">
+        <div class="card-icon">📋</div>
+        <div>
+          <div class="card-title">Dashboard — Panoramica del giorno</div>
+          <div class="card-desc">La prima schermata che vedi ogni mattina: tutto quello che serve sapere in un colpo d'occhio.</div>
+        </div>
+      </div>
+      <div class="card-features">
+        <div class="feature"><div class="feature-dot"></div>Numero di interventi previsti oggi e operatori disponibili</div>
+        <div class="feature"><div class="feature-dot"></div>Interventi scoperti (senza operatore assegnato) con pulsante per assegnare manualmente</div>
+        <div class="feature"><div class="feature-dot"></div>Candidati idonei suggeriti per ogni intervento scoperto, con skill compatibili</div>
+        <div class="feature"><div class="feature-dot"></div>Operatori in sovraccarico orario segnalati con ore usate vs. ore contrattuali</div>
+        <div class="feature"><div class="feature-dot"></div>Indisponibili del giorno e utenti senza copertura</div>
+      </div>
+    </div>
+
+    <!-- Chat AI -->
+    <div class="card accent-indigo">
+      <div class="card-header">
+        <div class="card-icon">🤖</div>
+        <div>
+          <div class="card-title">Assistente AI</div>
+          <div class="card-desc">Fai domande in linguaggio naturale. L'AI accede al database e risponde con dati reali.</div>
+        </div>
+      </div>
+      <div class="card-features">
+        <div class="feature"><div class="feature-dot"></div>"Chi è disponibile domani mattina?"</div>
+        <div class="feature"><div class="feature-dot"></div>"Chi sa fare medicazioni avanzate?"</div>
+        <div class="feature"><div class="feature-dot"></div>"Riepilogo interventi settimana"</div>
+        <div class="feature"><div class="feature-dot"></div>Genera turni su richiesta vocale</div>
+        <div class="feature"><div class="feature-dot"></div>Briefing giornaliero automatico all'apertura</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── SEZIONE 2: TURNI ──────────────────────────────── -->
+  <div class="divider"></div>
+  <div class="section-label">Pianificazione turni</div>
+
+  <!-- Flusso generazione -->
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-title">Definisci i piani</div>
+      <div class="flow-desc">Per ogni utente scegli i servizi, i giorni della settimana e l'orario preferito.</div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-title">Registra le indisponibilità</div>
+      <div class="flow-desc">Inserisci ferie, malattie e permessi degli operatori prima di generare.</div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-title">Genera i turni</div>
+      <div class="flow-desc">Scegli il periodo e premi "Genera". Il sistema assegna automaticamente rispettando skill, ore contrattuali ed equipe.</div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-title">Revisiona e correggi</div>
+      <div class="flow-desc">Nella griglia vedi gli scoperti in evidenza. Assegna manualmente con un click.</div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">5</div>
+      <div class="flow-title">Email automatica</div>
+      <div class="flow-desc">Gli operatori ricevono il loro giro via email ogni mattina alle 6:30.</div>
+    </div>
+  </div>
+
+  <div class="grid grid-3">
+
+    <!-- Griglia turni -->
+    <div class="card accent-terracotta">
+      <div class="card-header">
+        <div class="card-icon">📅</div>
+        <div><div class="card-title">Griglia turni</div></div>
+      </div>
+      <div class="card-features">
+        <div class="feature"><div class="feature-dot"></div>Vista giorno, settimana o mese</div>
+        <div class="feature"><div class="feature-dot"></div>Colori diversi per ogni operatore</div>
+        <div class="feature"><div class="feature-dot"></div>Interventi scoperti evidenziati in rosso</div>
+        <div class="feature"><div class="feature-dot"></div>Generazione e cancellazione per periodo</div>
+        <div class="feature"><div class="feature-dot"></div>Ottimizzazione ordine visite nella giornata</div>
+      </div>
+    </div>
+
+    <!-- Indisponibilità -->
+    <div class="card accent-rose">
+      <div class="card-header">
+        <div class="card-icon">🚫</div>
+        <div><div class="card-title">Indisponibilità</div></div>
+      </div>
+      <div class="card-features">
+        <div class="feature"><div class="feature-dot"></div>Registra ferie, malattia, permesso</div>
+        <div class="feature"><div class="feature-dot"></div>Filtro per operatore e periodo</div>
+        <div class="feature"><div class="feature-dot"></div>Codifica colori per tipo assenza</div>
+        <div class="feature"><div class="feature-dot"></div><strong>Ricalcolo automatico</strong> dei turni dell'operatore assente</div>
+        <div class="feature"><div class="feature-dot"></div>Suggerimento sostituti con skill compatibili</div>
+      </div>
+    </div>
+
+    <!-- Mappa -->
+    <div class="card accent-green">
+      <div class="card-header">
+        <div class="card-icon">🗺</div>
+        <div><div class="card-title">Mappa interattiva</div></div>
+      </div>
+      <div class="card-features">
+        <div class="feature"><div class="feature-dot"></div>Posizione di operatori e utenti sulla mappa</div>
+        <div class="feature"><div class="feature-dot"></div>Percorsi delle visite odierne per operatore</div>
+        <div class="feature"><div class="feature-dot"></div>Popup con dettagli (qualifica, telefono, mezzo)</div>
+        <div class="feature"><div class="feature-dot"></div>Interventi assegnati e scoperti visibili</div>
+        <div class="feature"><div class="feature-dot"></div>Segnalazione elementi senza coordinate</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── SEZIONE 3: ANAGRAFICA ─────────────────────────── -->
+  <div class="divider"></div>
+  <div class="section-label">Anagrafica e configurazione</div>
+
+  <div class="grid grid-4">
+
+    <!-- Operatori -->
+    <div class="card accent-terracotta">
+      <div class="card-header">
+        <div class="card-icon">👤</div>
+        <div><div class="card-title">Operatori</div></div>
+      </div>
+      <div class="card-features">
+        <div class="feature"><div class="feature-dot"></div>Qualifica, ore contrattuali, turno preferito</div>
+        <div class="feature"><div class="feature-dot"></div>Mezzo di trasporto (auto/bici/piedi)</div>
+        <div class="feature"><div class="feature-dot"></div>Skill associate (qualifiche e abilitazioni)</div>
+        <div class="feature"><div class="feature-dot"></div>Email per ricezione turni</div>
+        <div class="feature"><div class="feature-dot"></div>Import massivo da Excel</div>
+      </div>
+    </div>
+
+    <!-- Utenti -->
+    <div class="card accent-brown">
+      <div class="card-header">
+        <div class="card-icon">🏠</div>
+        <div><div class="card-title">Utenti (assistiti)</div></div>
+      </div>
+      <div class="card-features">
+        <div class="feature"><div class="feature-dot"></div>Dati anagrafici e indirizzo</div>
+        <div class="feature"><div class="feature-dot"></div>Note cliniche</div>
+        <div class="feature"><div class="feature-dot"></div>Piani assistenziali e ore settimanali</div>
+        <div class="feature"><div class="feature-dot"></div>Equipe di riferimento</div>
+        <div class="feature"><div class="feature-dot"></div>Import massivo da Excel</div>
+      </div>
+    </div>
+
+    <!-- Piani assistenziali -->
+    <div class="card accent-green">
+      <div class="card-header">
+        <div class="card-icon">📋</div>
+        <div><div class="card-title">Piani assistenziali</div></div>
+      </div>
+      <div class="card-features">
+        <div class="feature"><div class="feature-dot"></div>Tipo di servizio ricorrente per utente</div>
+        <div class="feature"><div class="feature-dot"></div>Giorni della settimana (Lun–Dom)</div>
+        <div class="feature"><div class="feature-dot"></div>Orario di inizio preferito</div>
+        <div class="feature"><div class="feature-dot"></div>Attiva/disattiva senza eliminare</div>
+        <div class="feature"><div class="feature-dot"></div>Base per la generazione automatica turni</div>
+      </div>
+    </div>
+
+    <!-- Equipe -->
+    <div class="card accent-indigo">
+      <div class="card-header">
+        <div class="card-icon">👥</div>
+        <div><div class="card-title">Equipe</div></div>
+      </div>
+      <div class="card-features">
+        <div class="feature"><div class="feature-dot"></div>Gruppo di operatori fisso per ogni utente</div>
+        <div class="feature"><div class="feature-dot"></div>Ruoli: principale, backup, alternato…</div>
+        <div class="feature"><div class="feature-dot"></div>Il sistema preferisce i membri dell'equipe in fase di assegnazione</div>
+        <div class="feature"><div class="feature-dot"></div>Gestione multipla (più equipe per utente)</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="grid grid-3" style="margin-top: 16px;">
+
+    <!-- Skills -->
+    <div class="card accent-gold">
+      <div class="card-header">
+        <div class="card-icon">🎓</div>
+        <div><div class="card-title">Skill & abilitazioni</div></div>
+      </div>
+      <div class="card-desc">Definisci le competenze (es. Patente B, Medicazioni avanzate, Fisioterapia) e assegnale agli operatori e ai tipi servizio. Il sistema usa le skill per assegnare solo chi è abilitato.</div>
+      <div class="stat-row">
+        <div class="stat-pill">Crea skill</div>
+        <div class="stat-pill">Assegna a operatori</div>
+        <div class="stat-pill">Collega ai servizi</div>
+      </div>
+    </div>
+
+    <!-- Tipi servizio -->
+    <div class="card accent-brown">
+      <div class="card-header">
+        <div class="card-icon">🩺</div>
+        <div><div class="card-title">Tipi di servizio</div></div>
+      </div>
+      <div class="card-desc">Catalogo dei servizi erogabili (Igiene personale, Medicazione, Accompagno…). Ogni servizio ha una durata in minuti e le skill richieste per eseguirlo.</div>
+      <div class="stat-row">
+        <div class="stat-pill">Durata (min)</div>
+        <div class="stat-pill">Skill richieste</div>
+        <div class="stat-pill">Usato nei piani</div>
+      </div>
+    </div>
+
+    <!-- Import -->
+    <div class="card accent-green">
+      <div class="card-header">
+        <div class="card-icon">📥</div>
+        <div><div class="card-title">Import da Excel</div></div>
+      </div>
+      <div class="card-desc">Carica in blocco operatori o utenti da un file .xlsx. Il sistema valida i dati, mostra gli errori riga per riga e importa i record validi.</div>
+      <div class="stat-row">
+        <div class="stat-pill">Template scaricabile</div>
+        <div class="stat-pill">Validazione live</div>
+        <div class="stat-pill">Report errori</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── SEZIONE 4: EMAIL AUTOMATICA ───────────────────── -->
+  <div class="divider"></div>
+  <div class="section-label">Notifiche automatiche agli operatori</div>
+
+  <div class="email-preview">
+    <div class="email-preview-icon">✉️</div>
+    <div class="email-preview-body">
+      <div class="email-preview-title">Email giornaliera — "Il tuo giro"</div>
+      <div class="email-preview-desc">
+        Ogni mattina alle <strong style="color:#C4714A">6:30</strong> ogni operatore con email riceve il riepilogo personalizzato della sua giornata:
+        orari stimati di ogni visita, nome e indirizzo dell'assistito, tipo di servizio e durata. Include un
+        <strong style="color:#C4714A">link diretto a Google Maps</strong> con il percorso ottimizzato già preimpostato.
+        Quando vengono rigenerati i turni, l'email viene inviata automaticamente anche in quel momento.
+      </div>
+      <div class="email-preview-tags">
+        <div class="email-tag">Invio automatico 6:30</div>
+        <div class="email-tag">Orari stimati</div>
+        <div class="email-tag">Indirizzo assistito</div>
+        <div class="email-tag">Link Google Maps percorso</div>
+        <div class="email-tag">Sezione mattina + pomeriggio</div>
+        <div class="email-tag">Invio anche al rinnovo turni</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SEZIONE 5: ACCESSI ────────────────────────────── -->
+  <div class="section-label">Accessi e account</div>
+
+  <div class="grid grid-3">
+
+    <div class="card accent-indigo">
+      <div class="card-header">
+        <div class="card-icon">🔐</div>
+        <div><div class="card-title">Ruoli utente</div></div>
+      </div>
+      <div class="card-features">
+        <div class="feature"><div class="feature-dot"></div><strong>Admin</strong> — accesso completo a tutto</div>
+        <div class="feature"><div class="feature-dot"></div><strong>Coordinatore</strong> — gestione turni e anagrafica</div>
+        <div class="feature"><div class="feature-dot"></div><strong>Operatore</strong> — visualizza solo i propri turni</div>
+      </div>
+    </div>
+
+    <div class="card accent-terracotta">
+      <div class="card-header">
+        <div class="card-icon">⚙️</div>
+        <div><div class="card-title">Gestione account</div></div>
+      </div>
+      <div class="card-features">
+        <div class="feature"><div class="feature-dot"></div>Crea account per coordinatori e operatori</div>
+        <div class="feature"><div class="feature-dot"></div>Collega ogni account all'operatore corrispondente</div>
+        <div class="feature"><div class="feature-dot"></div>Attiva/disattiva accessi senza eliminare</div>
+        <div class="feature"><div class="feature-dot"></div>Nuovo operatore con email → account creato in automatico</div>
+      </div>
+    </div>
+
+    <div class="card accent-green">
+      <div class="card-header">
+        <div class="card-icon">📱</div>
+        <div><div class="card-title">App operatori</div></div>
+      </div>
+      <div class="card-features">
+        <div class="feature"><div class="feature-dot"></div>Login con email e password</div>
+        <div class="feature"><div class="feature-dot"></div>Visualizzazione turni personali per settimana</div>
+        <div class="feature"><div class="feature-dot"></div>Dettaglio utente: nome, indirizzo, servizio, durata</div>
+        <div class="feature"><div class="feature-dot"></div>Password default: <code style="background:#eef3f0;padding:1px 5px;border-radius:4px;font-size:11px">coordinamenti2026</code></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    Coordina·menti · Gestione turni domiciliari · Uso interno riservato
+  </div>
+
+</div>
+</body>
+</html>

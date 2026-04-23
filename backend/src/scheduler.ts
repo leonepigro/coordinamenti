@@ -1,4 +1,4 @@
-import { PrismaClient, Operatore, Utente } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -18,9 +18,14 @@ interface AssegnazioneIntervento extends SlotIntervento {
   operatoreNome: string;
 }
 
+export interface RisultatoGenerazione {
+  assegnate: AssegnazioneIntervento[];
+  scoperti: SlotIntervento[];
+}
+
 const MINUTI_PER_TURNO: Record<Turno, number> = {
-  mattina: 390, // 8:00 - 14:30
-  pomeriggio: 360, // 12:00 - 18:30
+  mattina: 390,  // 8:00 - 14:30
+  pomeriggio: 360, // 14:30 - 18:30
 };
 
 function oraToTurno(ora: string): Turno {
@@ -32,10 +37,25 @@ function getChiave(operatoreId: number, data: Date, turno: Turno): string {
   return `${operatoreId}-${data.toISOString().slice(0, 10)}-${turno}`;
 }
 
+function lunedi(d: Date): Date {
+  const date = new Date(d);
+  const day = date.getDay();
+  date.setDate(date.getDate() - (day === 0 ? 6 : day - 1));
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function domenica(d: Date): Date {
+  const date = lunedi(d);
+  date.setDate(date.getDate() + 6);
+  date.setHours(23, 59, 59, 999);
+  return date;
+}
+
 export async function generaTurni(
   dataInizio: Date,
   dataFine: Date,
-): Promise<AssegnazioneIntervento[]> {
+): Promise<RisultatoGenerazione> {
   // Carica operatori con le loro skill
   const operatori = await prisma.operatore.findMany({
     where: { attivo: true },
@@ -70,6 +90,33 @@ export async function generaTurni(
     ),
   );
 
+  // Seed ore settimanali da interventi già esistenti nelle stesse settimane
+  // ma al di fuori del range di rigenerazione (non verranno cancellati)
+  const inizioSettimane = lunedi(dataInizio);
+  const fineSettimane = domenica(dataFine);
+
+  const oreSettimana = new Map<number, number>();
+  operatori.forEach((o) => oreSettimana.set(o.id, 0));
+
+  const interventiPreesistenti = await prisma.intervento.findMany({
+    where: {
+      operatoreId: { not: null },
+      OR: [
+        { data: { gte: inizioSettimane, lt: dataInizio } },
+        { data: { gt: dataFine, lte: fineSettimane } },
+      ],
+    },
+    select: { operatoreId: true, durata: true },
+  });
+  interventiPreesistenti.forEach((i) => {
+    if (i.operatoreId !== null) {
+      oreSettimana.set(
+        i.operatoreId,
+        (oreSettimana.get(i.operatoreId) ?? 0) + i.durata / 60,
+      );
+    }
+  });
+
   // Genera slot da coprire leggendo i piani assistenziali
   const slots: SlotIntervento[] = [];
   const cursor = new Date(dataInizio);
@@ -100,10 +147,9 @@ export async function generaTurni(
 
   // Traccia minuti usati per operatore/giorno/turno
   const minutiUsati = new Map<string, number>();
-  const oreSettimana = new Map<number, number>();
-  operatori.forEach((o) => oreSettimana.set(o.id, 0));
 
-  const assegnazioni: AssegnazioneIntervento[] = [];
+  const assegnate: AssegnazioneIntervento[] = [];
+  const scoperti: SlotIntervento[] = [];
 
   for (const slot of slots) {
     const dataStr = slot.data.toISOString().slice(0, 10);
@@ -113,18 +159,15 @@ export async function generaTurni(
     const equipe = utente?.equipe[0];
     const idEquipe = equipe?.membri.map((m) => m.operatoreId) ?? [];
 
-    // Candidati: preferenza all'equipe dell'utente, poi skill compatibili
+    // Candidati: skill compatibili + disponibili + turno capiente
     const candidati = operatori.filter((op) => {
       if (setIndisponibili.has(`${op.id}-${dataStr}`)) return false;
 
-      // Verifica che l'operatore abbia tutte le skill richieste
       const skillOp = new Set(op.skills.map((s) => s.skillId));
       if (!slot.skillRichieste.every((s) => skillOp.has(s))) return false;
 
-      // Verifica ore settimanali
       if ((oreSettimana.get(op.id) ?? 0) >= op.oreSettimanali) return false;
 
-      // Verifica minuti disponibili nel turno
       const chiave = getChiave(op.id, slot.data, slot.turno);
       const occupati = minutiUsati.get(chiave) ?? 0;
       if (occupati + slot.durata > MINUTI_PER_TURNO[slot.turno]) return false;
@@ -133,9 +176,8 @@ export async function generaTurni(
     });
 
     if (candidati.length === 0) {
-      console.warn(
-        `Nessun operatore per utente ${slot.utenteId} il ${dataStr} turno ${slot.turno}`,
-      );
+      // Slot non coperto — salvato in DB con operatoreId null per gestione manuale
+      scoperti.push(slot);
       continue;
     }
 
@@ -156,42 +198,52 @@ export async function generaTurni(
       (oreSettimana.get(scelto.id) ?? 0) + slot.durata / 60,
     );
 
-    assegnazioni.push({
+    assegnate.push({
       ...slot,
       operatoreId: scelto.id,
       operatoreNome: scelto.nome,
     });
   }
 
-  return assegnazioni;
+  return { assegnate, scoperti };
 }
 
 export async function salvaAssegnazioni(
-  assegnazioni: AssegnazioneIntervento[],
+  assegnate: AssegnazioneIntervento[],
+  scoperti: SlotIntervento[],
 ) {
-  if (assegnazioni.length === 0) return;
+  const tuttiSlot = [
+    ...assegnate.map((a) => a.data),
+    ...scoperti.map((s) => s.data),
+  ];
+  if (tuttiSlot.length === 0) return;
 
-  const dataMin = assegnazioni.reduce(
-    (m, a) => (a.data < m ? a.data : m),
-    assegnazioni[0].data,
-  );
-  const dataMax = assegnazioni.reduce(
-    (m, a) => (a.data > m ? a.data : m),
-    assegnazioni[0].data,
-  );
+  const dataMin = tuttiSlot.reduce((m, d) => (d < m ? d : m));
+  const dataMax = tuttiSlot.reduce((m, d) => (d > m ? d : m));
 
   await prisma.intervento.deleteMany({
     where: { data: { gte: dataMin, lte: dataMax }, completato: false },
   });
 
+  const datiAssegnati = assegnate.map((a) => ({
+    utenteId: a.utenteId,
+    operatoreId: a.operatoreId,
+    tipoServizioId: a.tipoServizioId,
+    data: a.data,
+    turno: a.turno,
+    durata: a.durata,
+  }));
+
+  const datiScoperti = scoperti.map((s) => ({
+    utenteId: s.utenteId,
+    operatoreId: null as null,
+    tipoServizioId: s.tipoServizioId,
+    data: s.data,
+    turno: s.turno,
+    durata: s.durata,
+  }));
+
   await prisma.intervento.createMany({
-    data: assegnazioni.map((a) => ({
-      utenteId: a.utenteId,
-      operatoreId: a.operatoreId,
-      tipoServizioId: a.tipoServizioId,
-      data: a.data,
-      turno: a.turno,
-      durata: a.durata,
-    })),
+    data: [...datiAssegnati, ...datiScoperti],
   });
 }

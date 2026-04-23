@@ -165,14 +165,15 @@ export const toolDefinitions = [
 export async function eseguiTool(nome: string, args: any): Promise<string> {
   switch (nome) {
     case "genera_turni": {
-      const assegnazioni = await generaTurni(
+      const { assegnate, scoperti } = await generaTurni(
         new Date(args.dataInizio),
         new Date(args.dataFine),
       );
-      await salvaAssegnazioni(assegnazioni);
+      await salvaAssegnazioni(assegnate, scoperti);
       return JSON.stringify({
-        totale: assegnazioni.length,
-        messaggio: `Generati ${assegnazioni.length} interventi`,
+        assegnati: assegnate.length,
+        scoperti: scoperti.length,
+        messaggio: `Generati ${assegnate.length} interventi${scoperti.length > 0 ? `, ${scoperti.length} scoperti` : ""}`,
       });
     }
 
