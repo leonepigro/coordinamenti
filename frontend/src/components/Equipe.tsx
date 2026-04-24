@@ -61,7 +61,7 @@ export default function Equipe() {
   );
 
   return (
-    <div style={{ padding: 32, background: "var(--bianco)", minHeight: "100vh" }}>
+    <div className="cm-page" style={{ padding: 32, background: "var(--bianco)", minHeight: "100vh" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 500, color: "var(--inchiostro)", margin: 0 }}>Equipe</h1>

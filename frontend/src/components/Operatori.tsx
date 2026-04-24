@@ -83,7 +83,7 @@ export default function Operatori() {
 
   return (
     <div
-      style={{ padding: 32, background: "var(--bianco)", minHeight: "100vh" }}
+      className="cm-page" style={{ padding: 32, background: "var(--bianco)", minHeight: "100vh" }}
     >
       {/* Header */}
       <div

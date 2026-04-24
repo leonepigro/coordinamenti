@@ -97,10 +97,16 @@ export default function Layout({
 }) {
   const ruolo = utente?.ruolo ?? "operatore";
   const [config, setConfig] = useState<{ ollamaModel: string; groqModel: string } | null>(null);
+  const [sidebarAperta, setSidebarAperta] = useState(false);
 
   useEffect(() => {
     api.get("/config").then((res) => setConfig(res.data)).catch(() => {});
   }, []);
+
+  function naviga(p: Pagina) {
+    setPagina(p);
+    setSidebarAperta(false);
+  }
 
   const voci = tutteLeVoci.filter((v) =>
     (v.ruoli as readonly string[]).includes(ruolo),
@@ -116,8 +122,29 @@ export default function Layout({
     <div
       style={{ display: "flex", height: "100vh", background: "var(--sabbia)" }}
     >
+      {/* Top bar mobile */}
+      <div className="cm-topbar">
+        <button
+          onClick={() => setSidebarAperta((v) => !v)}
+          style={{ background: "none", border: "none", cursor: "pointer", padding: 4, color: "var(--bianco)", fontSize: 20, lineHeight: 1 }}
+          aria-label="Menu"
+        >
+          ☰
+        </button>
+        <div>
+          <span style={{ fontSize: 10, fontWeight: 500, color: "var(--terra)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Coordina</span>
+          <span style={{ fontSize: 16, fontWeight: 300, color: "var(--bianco)", fontStyle: "italic", marginLeft: 2 }}>menti</span>
+        </div>
+      </div>
+
+      {/* Overlay mobile */}
+      {sidebarAperta && (
+        <div className="cm-overlay" onClick={() => setSidebarAperta(false)} />
+      )}
+
       {/* Sidebar */}
       <aside
+        className={`cm-sidebar${sidebarAperta ? " aperta" : ""}`}
         style={{
           width: 236,
           background: "var(--inchiostro)",
@@ -186,7 +213,7 @@ export default function Layout({
                   return (
                     <button
                       key={v.id}
-                      onClick={() => setPagina(v.id)}
+                      onClick={() => naviga(v.id)}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -304,7 +331,7 @@ export default function Layout({
       </aside>
 
       {/* Contenuto */}
-      <main style={{ flex: 1, overflow: "auto", background: "var(--bianco)" }}>
+      <main className="cm-main" style={{ flex: 1, overflow: "auto", background: "var(--bianco)" }}>
         {children}
       </main>
     </div>

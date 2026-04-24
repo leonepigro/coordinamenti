@@ -95,7 +95,7 @@ export default function Dashboard({
     dati.interventiScoperti.length > 0 || dati.indisponibili.length > 0;
 
   return (
-    <div style={{ padding: 32, maxWidth: 860 }}>
+    <div className="cm-page" style={{ padding: 32, maxWidth: 860 }}>
       {/* Header */}
       <div
         style={{
@@ -355,6 +355,7 @@ export default function Dashboard({
 
       {/* Statistiche */}
       <div
+        className="cm-grid"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(3, 1fr)",

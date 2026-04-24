@@ -19,6 +19,7 @@ export default function Modal({
 
   return (
     <div
+      className="cm-modal-outer"
       onClick={onClose}
       style={{
         position: "fixed",
@@ -31,6 +32,7 @@ export default function Modal({
       }}
     >
       <div
+        className="cm-modal-inner"
         onClick={(e) => e.stopPropagation()}
         style={{
           background: "#fff",
