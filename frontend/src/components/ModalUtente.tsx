@@ -223,6 +223,8 @@ export default function ModalUtente({
             <label style={labelStyle}>Indirizzo *</label>
             <InputIndirizzo
               valore={form.indirizzo}
+              lat={form.lat}
+              lon={form.lon}
               onChange={(indirizzo, lat, lon) =>
                 setForm((f) => ({ ...f, indirizzo, lat, lon }))
               }

@@ -22,6 +22,8 @@ interface Suggerimento {
 
 interface Props {
   valore: string;
+  lat?: number;
+  lon?: number;
   onChange: (indirizzo: string, lat?: number, lon?: number) => void;
   placeholder?: string;
 }
@@ -41,13 +43,15 @@ function MarkerClick({
 
 export default function InputIndirizzo({
   valore,
+  lat,
+  lon,
   onChange,
   placeholder,
 }: Props) {
   const [suggerimenti, setSuggerimenti] = useState<Suggerimento[]>([]);
   const [mostraMappa, setMostraMappa] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(
-    null,
+    lat && lon ? { lat, lon } : null,
   );
   const [cercando, setCercando] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
