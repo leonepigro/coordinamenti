@@ -872,15 +872,15 @@ app.get("/api/briefing", async (req, res) => {
   });
 });
 
-function estraiUtente(req: any): { nome: string; ruolo: string } {
+function estraiUtente(req: any): { nome: string; ruolo: string; email: string } {
   try {
     const auth = req.headers.authorization as string | undefined;
     if (auth?.startsWith("Bearer ")) {
       const payload = jwt.verify(auth.slice(7), JWT_SECRET) as any;
-      return { nome: payload.nome ?? "Collaboratore", ruolo: payload.ruolo ?? "operatore" };
+      return { nome: payload.nome ?? "Collaboratore", ruolo: payload.ruolo ?? "operatore", email: payload.email ?? "" };
     }
   } catch { /* token assente o non valido */ }
-  return { nome: "Collaboratore", ruolo: "operatore" };
+  return { nome: "Collaboratore", ruolo: "operatore", email: "" };
 }
 
 function buildSystemPrompt(nome: string, ruolo: string): string {
@@ -1158,6 +1158,31 @@ app.post("/api/auth/login", async (req, res) => {
       operatoreId: utente.operatoreId,
     },
   });
+});
+
+app.put("/api/auth/profilo", async (req, res) => {
+  const utente = estraiUtente(req);
+  const { passwordAttuale, nuovaPassword, nuovaEmail } = req.body;
+
+  const record = await prisma.utenteApp.findUnique({ where: { email: utente.email } });
+  if (!record) return res.status(404).json({ errore: "Utente non trovato" });
+
+  if (!bcrypt.compareSync(passwordAttuale, record.passwordHash))
+    return res.status(400).json({ errore: "Password attuale non corretta" });
+
+  const data: any = {};
+  if (nuovaEmail?.trim()) data.email = nuovaEmail.toLowerCase().trim();
+  if (nuovaPassword?.trim()) data.passwordHash = bcrypt.hashSync(nuovaPassword, 10);
+
+  if (Object.keys(data).length === 0)
+    return res.status(400).json({ errore: "Nessuna modifica richiesta" });
+
+  try {
+    const aggiornato = await prisma.utenteApp.update({ where: { id: record.id }, data });
+    res.json({ ok: true, email: aggiornato.email });
+  } catch {
+    res.status(400).json({ errore: "Email già in uso" });
+  }
 });
 
 app.get("/api/auth/verifica", (req, res) => {

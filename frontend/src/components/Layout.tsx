@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Pagina } from "../App";
 import api from "../api/client";
+import ModalProfilo from "./ModalProfilo";
 
 const tutteLeVoci = [
   {
@@ -98,6 +99,8 @@ export default function Layout({
   const ruolo = utente?.ruolo ?? "operatore";
   const [config, setConfig] = useState<{ ollamaModel: string; groqModel: string } | null>(null);
   const [sidebarAperta, setSidebarAperta] = useState(false);
+  const [profiloAperto, setProfiloAperto] = useState(false);
+  const [utenteLocale, setUtenteLocale] = useState(utente);
 
   useEffect(() => {
     api.get("/config").then((res) => setConfig(res.data)).catch(() => {});
@@ -287,21 +290,27 @@ export default function Layout({
           >
             {config ? config.ollamaModel : "—"}
           </div>
-          <div
+          <button
+            onClick={() => { setProfiloAperto(true); setSidebarAperta(false); }}
             style={{
-              fontSize: 12,
-              color: "var(--bianco)",
-              marginBottom: 4,
-              fontWeight: 500,
+              display: "block",
+              width: "100%",
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              textAlign: "left" as const,
+              marginBottom: 10,
             }}
+            title="Modifica profilo"
           >
-            {utente?.nome ?? ""}
-          </div>
-          <div
-            style={{ fontSize: 11, color: "var(--grigio)", marginBottom: 10 }}
-          >
-            {utente?.ruolo ?? ""}
-          </div>
+            <div style={{ fontSize: 12, color: "var(--bianco)", fontWeight: 500 }}>
+              {utenteLocale?.nome ?? utente?.nome ?? ""}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--grigio)" }}>
+              {utenteLocale?.email ?? utente?.email ?? utente?.ruolo ?? ""}
+            </div>
+          </button>
           <button
             onClick={onLogout}
             style={{
@@ -334,6 +343,18 @@ export default function Layout({
       <main className="cm-main" style={{ flex: 1, overflow: "auto", background: "var(--bianco)" }}>
         {children}
       </main>
+
+      {profiloAperto && (
+        <ModalProfilo
+          utente={utenteLocale ?? utente}
+          onClose={() => setProfiloAperto(false)}
+          onAggiornato={(nuovaEmail) => {
+            const aggiornato = { ...(utenteLocale ?? utente), email: nuovaEmail };
+            setUtenteLocale(aggiornato);
+            localStorage.setItem("cm_utente", JSON.stringify(aggiornato));
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -170,6 +170,8 @@ export const auth = {
   login: (email: string, password: string) =>
     api.post("/auth/login", { email, password }),
   verifica: () => api.get("/auth/verifica"),
+  aggiornaProfilo: (data: { passwordAttuale: string; nuovaEmail?: string; nuovaPassword?: string }) =>
+    api.put("/auth/profilo", data),
   logout: () => {
     localStorage.removeItem("cm_token");
     localStorage.removeItem("cm_utente");
