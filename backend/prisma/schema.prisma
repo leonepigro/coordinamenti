@@ -22,9 +22,25 @@ model Operatore {
   equipe          EquipeMembro[]
   interventi      Intervento[]
   indisponibilita Indisponibilita[]
+  commesse        OperatoreCommessa[]
   mezzoTrasporto  String  @default("foot")  // driving | cycling | foot
   email           String?
-  utenteApp   UtenteApp?
+  utenteApp       UtenteApp?
+}
+
+model Commessa {
+  id        Int                 @id @default(autoincrement())
+  nome      String              @unique
+  utenti    Utente[]
+  operatori OperatoreCommessa[]
+}
+
+model OperatoreCommessa {
+  operatoreId Int
+  commessaId  Int
+  operatore   Operatore @relation(fields: [operatoreId], references: [id])
+  commessa    Commessa  @relation(fields: [commessaId], references: [id])
+  @@id([operatoreId, commessaId])
 }
 
 model Qualifica {
@@ -79,6 +95,8 @@ model Utente {
   piani            PianoAssistenziale[]
   equipe           Equipe[]
   interventi       Intervento[]
+  commessaId       Int?
+  commessa         Commessa? @relation(fields: [commessaId], references: [id])
 }
 
 model PianoAssistenziale {

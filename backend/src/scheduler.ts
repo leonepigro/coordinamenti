@@ -60,7 +60,10 @@ export async function generaTurni(
   // Carica operatori con le loro skill
   const operatori = await prisma.operatore.findMany({
     where: { attivo: true },
-    include: { skills: { include: { skill: true } } },
+    include: {
+      skills: { include: { skill: true } },
+      commesse: true,
+    },
   });
 
   // Carica utenti con i piani assistenziali e skill richieste
@@ -78,6 +81,7 @@ export async function generaTurni(
       equipe: {
         include: { membri: true },
       },
+      commessa: true,
     },
   });
 
@@ -160,9 +164,14 @@ export async function generaTurni(
     const equipe = utente?.equipe[0];
     const idEquipe = equipe?.membri.map((m) => m.operatoreId) ?? [];
 
-    // Candidati: skill compatibili + disponibili + turno capiente
+    // Candidati: commessa + skill compatibili + disponibili + turno capiente
     const candidati = operatori.filter((op) => {
       if (setIndisponibili.has(`${op.id}-${dataStr}`)) return false;
+
+      // Filtro commessa: se utente ha commessa e operatore ha commesse, devono coincidere
+      if (utente?.commessaId && op.commesse.length > 0) {
+        if (!op.commesse.some((c) => c.commessaId === utente.commessaId)) return false;
+      }
 
       const skillOp = new Set(op.skills.map((s) => s.skillId));
       if (!slot.skillRichieste.every((s) => skillOp.has(s))) return false;

@@ -43,6 +43,12 @@ const COLONNE_OPERATORI = [
     required: false,
     esempio: "maria.rossi@email.it",
   },
+  {
+    key: "commessa",
+    label: "Commessa",
+    required: false,
+    esempio: "SAISA Mun. XII, PIOPPO",
+  },
 ];
 
 const COLONNE_UTENTI = [
@@ -60,6 +66,7 @@ const COLONNE_UTENTI = [
     esempio: "10",
   },
   { key: "note", label: "Note", required: false, esempio: "Diabetico" },
+  { key: "commessa", label: "Commessa", required: false, esempio: "SAISA Mun. XII" },
 ];
 
 export default function ImportExcel({

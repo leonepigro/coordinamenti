@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Modal from "./Modal";
-import { skill as apiSkill, operatori as apiOperatori, qualifiche as apiQualifiche } from "../api/client";
+import { skill as apiSkill, operatori as apiOperatori, qualifiche as apiQualifiche, commesse as apiCommesse } from "../api/client";
 import InputIndirizzo from "./InputIndirizzo";
 
 interface Skill {
@@ -17,6 +17,7 @@ interface OperatoreForm {
   telefono: string;
   email: string;
   skillIds: number[];
+  commessaIds: number[];
   mezzoTrasporto: string;
   lat?: number;
   lon?: number;
@@ -46,11 +47,13 @@ export default function ModalOperatore({
     telefono: operatore?.telefono ?? "",
     email: operatore?.email ?? "",
     skillIds: operatore?.skills?.map((s: any) => s.skillId) ?? [],
+    commessaIds: operatore?.commesse?.map((c: any) => c.commessaId) ?? [],
     mezzoTrasporto: operatore?.mezzoTrasporto ?? "foot",
     indirizzo: operatore?.indirizzo ?? "",
     lat: operatore?.lat ?? undefined,
     lon: operatore?.lon ?? undefined,
   });
+  const [commesseDisponibili, setCommesseDisponibili] = useState<{ id: number; nome: string }[]>([]);
   const [skillDisponibili, setSkillDisponibili] = useState<Skill[]>([]);
   const [nuovaSkill, setNuovaSkill] = useState("");
   const [qualificheDisponibili, setQualificheDisponibili] = useState<{ id: number; nome: string }[]>([]);
@@ -61,6 +64,7 @@ export default function ModalOperatore({
 
   useEffect(() => {
     apiSkill.lista().then((r) => setSkillDisponibili(r.data));
+    apiCommesse.lista().then((r) => setCommesseDisponibili(r.data));
     apiQualifiche.lista().then((r) => {
       setQualificheDisponibili(r.data);
       if (!operatore?.qualifica && r.data.length > 0)
@@ -252,6 +256,38 @@ export default function ModalOperatore({
                 setForm((f) => ({ ...f, indirizzo, lat, lon }))
               }
             />
+          </div>
+        </div>
+
+        <div>
+          <label style={labelStyle}>Commesse</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {commesseDisponibili.map((c) => {
+              const sel = form.commessaIds.includes(c.id);
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setForm((f) => ({
+                    ...f,
+                    commessaIds: sel
+                      ? f.commessaIds.filter((id) => id !== c.id)
+                      : [...f.commessaIds, c.id],
+                  }))}
+                  style={{
+                    padding: "4px 12px",
+                    borderRadius: 20,
+                    fontSize: 12,
+                    cursor: "pointer",
+                    border: sel ? "1.5px solid var(--terra)" : "1px solid #e5e5e3",
+                    background: sel ? "var(--terra)" : "#fff",
+                    color: sel ? "#fff" : "#555",
+                  }}
+                >
+                  {c.nome}
+                </button>
+              );
+            })}
           </div>
         </div>
 

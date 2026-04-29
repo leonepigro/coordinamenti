@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Modal from "./Modal";
-import { utenti as apiUtenti, tipiServizio as apiTipi } from "../api/client";
+import { utenti as apiUtenti, tipiServizio as apiTipi, commesse as apiCommesse } from "../api/client";
 import InputIndirizzo from "./InputIndirizzo";
 
 interface TipoServizio {
@@ -45,9 +45,11 @@ export default function ModalUtente({
     indirizzo: utente?.indirizzo ?? "",
     oreSettimanali: utente?.oreSettimanali ?? 10,
     note: utente?.note ?? "",
+    commessaId: utente?.commessaId ?? null as number | null,
     lat: utente?.lat ?? undefined,
     lon: utente?.lon ?? undefined,
   });
+  const [commesseDisponibili, setCommesseDisponibili] = useState<{ id: number; nome: string }[]>([]);
 
   const [piani, setPiani] = useState<Piano[]>(
     utente?.piani?.map((p: any) => ({
@@ -63,6 +65,7 @@ export default function ModalUtente({
 
   useEffect(() => {
     apiTipi.lista().then((r) => setTipi(r.data));
+    apiCommesse.lista().then((r) => setCommesseDisponibili(r.data));
   }, []);
 
   function aggiornaPiano(
@@ -202,6 +205,19 @@ export default function ModalUtente({
                 min={1}
               />
             </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Commessa</label>
+            <select
+              value={form.commessaId ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, commessaId: e.target.value ? parseInt(e.target.value) : null }))}
+              style={inputStyle}
+            >
+              <option value="">— Nessuna commessa —</option>
+              {commesseDisponibili.map((c) => (
+                <option key={c.id} value={c.id}>{c.nome}</option>
+              ))}
+            </select>
           </div>
           <div>
             <label style={labelStyle}>Indirizzo *</label>

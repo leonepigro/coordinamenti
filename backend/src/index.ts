@@ -118,7 +118,10 @@ app.post("/api/geocodifica/operatore/:id", async (req, res) => {
 app.get("/api/operatori", async (req, res) => {
   const operatori = await prisma.operatore.findMany({
     where: { attivo: true },
-    include: { skills: { include: { skill: true } } },
+    include: {
+      skills: { include: { skill: true } },
+      commesse: { include: { commessa: true } },
+    },
     orderBy: { nome: "asc" },
   });
   res.json(operatori);
@@ -180,6 +183,22 @@ app.get("/api/interventi", async (req, res) => {
   res.json(interventi);
 });
 // --- SKILL ---
+app.get("/api/commesse", async (req, res) => {
+  const commesse = await prisma.commessa.findMany({ orderBy: { nome: "asc" } });
+  res.json(commesse);
+});
+
+app.post("/api/commesse", async (req, res) => {
+  const { nome } = req.body;
+  if (!nome?.trim()) return res.status(400).json({ errore: "Nome obbligatorio" });
+  try {
+    const c = await prisma.commessa.create({ data: { nome: nome.trim() } });
+    res.json(c);
+  } catch {
+    res.status(400).json({ errore: "Commessa già esistente" });
+  }
+});
+
 app.get("/api/qualifiche", async (req, res) => {
   const qualifiche = await prisma.qualifica.findMany({ orderBy: { nome: "asc" } });
   res.json(qualifiche);
@@ -234,6 +253,7 @@ app.post("/api/operatori", async (req, res) => {
     telefono,
     mezzoTrasporto,
     skillIds,
+    commessaIds,
     lat,
     lon,
     email,
@@ -252,8 +272,9 @@ app.post("/api/operatori", async (req, res) => {
       lat: coords?.lat,
       lon: coords?.lon,
       skills: { create: skillIds.map((id: number) => ({ skillId: id })) },
+      commesse: { create: (commessaIds ?? []).map((id: number) => ({ commessaId: id })) },
     },
-    include: { skills: { include: { skill: true } } },
+    include: { skills: { include: { skill: true } }, commesse: { include: { commessa: true } } },
   });
 
   if (email?.trim()) {
@@ -285,12 +306,14 @@ app.put("/api/operatori/:id", async (req, res) => {
     telefono,
     mezzoTrasporto,
     skillIds,
+    commessaIds,
     lat,
     lon,
     email,
   } = req.body;
   const coords = lat && lon ? { lat, lon } : await geocodifica(indirizzo);
   await prisma.operatoreSkill.deleteMany({ where: { operatoreId: id } });
+  await prisma.operatoreCommessa.deleteMany({ where: { operatoreId: id } });
   const operatore = await prisma.operatore.update({
     where: { id },
     data: {
@@ -305,8 +328,9 @@ app.put("/api/operatori/:id", async (req, res) => {
       lat: coords?.lat,
       lon: coords?.lon,
       skills: { create: skillIds.map((id: number) => ({ skillId: id })) },
+      commesse: { create: (commessaIds ?? []).map((id: number) => ({ commessaId: id })) },
     },
-    include: { skills: { include: { skill: true } } },
+    include: { skills: { include: { skill: true } }, commesse: { include: { commessa: true } } },
   });
 
   if (email?.trim()) {
@@ -349,7 +373,7 @@ app.delete("/api/operatori/:id", async (req, res) => {
 // --- UTENTI ---
 
 app.post("/api/utenti", async (req, res) => {
-  const { nome, indirizzo, oreSettimanali, note, piani, lat, lon } = req.body;
+  const { nome, indirizzo, oreSettimanali, note, piani, commessaId, lat, lon } = req.body;
   const coords = lat && lon ? { lat, lon } : await geocodifica(indirizzo);
   const utente = await prisma.utente.create({
     data: {
@@ -357,6 +381,7 @@ app.post("/api/utenti", async (req, res) => {
       indirizzo,
       oreSettimanali,
       note,
+      commessaId: commessaId ?? null,
       lat: coords?.lat,
       lon: coords?.lon,
       piani: {
@@ -367,14 +392,14 @@ app.post("/api/utenti", async (req, res) => {
         })),
       },
     },
-    include: { piani: { include: { tipoServizio: true } } },
+    include: { piani: { include: { tipoServizio: true } }, commessa: true },
   });
   res.json(utente);
 });
 
 app.put("/api/utenti/:id", async (req, res) => {
   const id = parseInt(req.params.id);
-  const { nome, indirizzo, oreSettimanali, note, piani, lat, lon } = req.body;
+  const { nome, indirizzo, oreSettimanali, note, piani, commessaId, lat, lon } = req.body;
   const coords = lat && lon ? { lat, lon } : await geocodifica(indirizzo);
   await prisma.pianoAssistenziale.deleteMany({ where: { utenteId: id } });
   const utente = await prisma.utente.update({
@@ -384,6 +409,7 @@ app.put("/api/utenti/:id", async (req, res) => {
       indirizzo,
       oreSettimanali,
       note,
+      commessaId: commessaId ?? null,
       lat: coords?.lat,
       lon: coords?.lon,
       piani: {
@@ -394,7 +420,7 @@ app.put("/api/utenti/:id", async (req, res) => {
         })),
       },
     },
-    include: { piani: { include: { tipoServizio: true } } },
+    include: { piani: { include: { tipoServizio: true } }, commessa: true },
   });
   res.json(utente);
 });
@@ -1010,6 +1036,12 @@ app.post("/api/import/operatori", async (req, res) => {
       }
       const coords = r.indirizzo ? await geocodifica(r.indirizzo) : null;
       const emailNorm = r.email?.trim().toLowerCase() || null;
+      const commesseNomi: string[] = (r.commessa ?? "")
+        .split(",").map((c: string) => c.trim()).filter(Boolean);
+      const commessaIds = await Promise.all(commesseNomi.map(async (nome: string) => {
+        const c = await prisma.commessa.upsert({ where: { nome }, update: {}, create: { nome } });
+        return c.id;
+      }));
       const operatore = await prisma.operatore.create({
         data: {
           nome: r.nome.trim(),
@@ -1022,6 +1054,7 @@ app.post("/api/import/operatori", async (req, res) => {
           email: emailNorm,
           lat: coords?.lat,
           lon: coords?.lon,
+          commesse: { create: commessaIds.map((id) => ({ commessaId: id })) },
         },
       });
       if (emailNorm) {
@@ -1056,12 +1089,19 @@ app.post("/api/import/utenti", async (req, res) => {
         continue;
       }
       const coords = r.indirizzo ? await geocodifica(r.indirizzo) : null;
+      let commessaId: number | null = null;
+      if (r.commessa?.trim()) {
+        const nome = r.commessa.trim();
+        const c = await prisma.commessa.upsert({ where: { nome }, update: {}, create: { nome } });
+        commessaId = c.id;
+      }
       await prisma.utente.create({
         data: {
           nome: r.nome.trim(),
           indirizzo: r.indirizzo?.trim() ?? "",
           oreSettimanali: parseInt(r.oreSettimanali) || 10,
           note: r.note?.trim() ?? null,
+          commessaId,
           lat: coords?.lat,
           lon: coords?.lon,
         },
