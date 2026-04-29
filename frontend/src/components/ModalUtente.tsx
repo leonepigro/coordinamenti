@@ -207,13 +207,13 @@ export default function ModalUtente({
             </div>
           </div>
           <div>
-            <label style={labelStyle}>Commessa</label>
+            <label style={labelStyle}>Servizio</label>
             <select
               value={form.commessaId ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, commessaId: e.target.value ? parseInt(e.target.value) : null }))}
               style={inputStyle}
             >
-              <option value="">— Nessuna commessa —</option>
+              <option value="">— Nessun servizio —</option>
               {commesseDisponibili.map((c) => (
                 <option key={c.id} value={c.id}>{c.nome}</option>
               ))}

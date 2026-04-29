@@ -262,7 +262,7 @@ export default function ModalOperatore({
         </div>
 
         <div>
-          <label style={labelStyle}>Commesse</label>
+          <label style={labelStyle}>Servizi</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {commesseDisponibili.map((c) => {
               const sel = form.commessaIds.includes(c.id);

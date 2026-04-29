@@ -192,7 +192,7 @@ export default function Utenti() {
               cursor: "pointer",
             }}
           >
-            <option value="">Tutte le commesse</option>
+            <option value="">Tutti i servizi</option>
             {commesse.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
