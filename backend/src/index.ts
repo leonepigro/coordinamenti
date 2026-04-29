@@ -15,10 +15,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-async function geocodificaRoma(indirizzo: string): Promise<{ lat: number; lon: number } | null> {
+async function geocodificaRoma(indirizzo: string): Promise<{ lat: number; lon: number; indirizzoNorm: string } | null> {
   try {
     const q = indirizzo.replace(/\(.*?\)/g, "").replace(/,?\s*Roma\s*$/i, "").trim() + " Roma";
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&viewbox=12.35,41.78,12.65,42.00&bounded=1`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&viewbox=12.35,41.78,12.65,42.00&bounded=1&addressdetails=1`;
     console.log(`[geocodifica] query: ${q}`);
     const res = await fetch(url, { headers: { "User-Agent": "coordinamenti-app/1.0" } });
     const data = (await res.json()) as any[];
@@ -26,8 +26,13 @@ async function geocodificaRoma(indirizzo: string): Promise<{ lat: number; lon: n
       console.log(`[geocodifica] nessun risultato per: ${q}`);
       return null;
     }
-    console.log(`[geocodifica] trovato: ${data[0].display_name} → ${data[0].lat}, ${data[0].lon}`);
-    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+    const d = data[0];
+    const a = d.address ?? {};
+    const road = a.road ?? a.pedestrian ?? a.footway ?? "";
+    const num = a.house_number ?? "";
+    const indirizzoNorm = road ? `${road}${num ? " " + num : ""}, Roma` : q;
+    console.log(`[geocodifica] trovato: ${indirizzoNorm} → ${d.lat}, ${d.lon}`);
+    return { lat: parseFloat(d.lat), lon: parseFloat(d.lon), indirizzoNorm };
   } catch (e) {
     console.error(`[geocodifica] errore per "${indirizzo}":`, e);
     return null;
@@ -1067,7 +1072,7 @@ app.post("/api/import/operatori", async (req, res) => {
           nome: r.nome.trim(),
           qualifica: r.qualifica.trim(),
           oreSettimanali: parseInt(r.oreSettimanali) || 36,
-          indirizzo: r.indirizzo?.trim() ?? "",
+          indirizzo: coords?.indirizzoNorm ?? r.indirizzo?.trim() ?? "",
           telefono: r.telefono?.trim() ?? null,
           preferenzaTurno: r.preferenzaTurno?.trim() ?? "mattina",
           mezzoTrasporto: r.mezzoTrasporto?.trim() ?? "driving",
@@ -1118,7 +1123,7 @@ app.post("/api/import/utenti", async (req, res) => {
       await prisma.utente.create({
         data: {
           nome: r.nome.trim(),
-          indirizzo: r.indirizzo?.trim() ?? "",
+          indirizzo: coords?.indirizzoNorm ?? r.indirizzo?.trim() ?? "",
           oreSettimanali: parseInt(r.oreSettimanali) || 10,
           note: r.note?.trim() ?? null,
           commessaId,
