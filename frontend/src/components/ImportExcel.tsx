@@ -17,7 +17,7 @@ const COLONNE_OPERATORI = [
     key: "indirizzo",
     label: "Indirizzo",
     required: false,
-    esempio: "Via Roma 1, Napoli",
+    esempio: "Via Roma 1",
   },
   {
     key: "telefono",
@@ -57,7 +57,7 @@ const COLONNE_UTENTI = [
     key: "indirizzo",
     label: "Indirizzo",
     required: false,
-    esempio: "Via Roma 1, Napoli",
+    esempio: "Via Roma 1",
   },
   {
     key: "oreSettimanali",
@@ -88,6 +88,7 @@ export default function ImportExcel({
     errori: string[];
   } | null>(null);
   const [importando, setImportando] = useState(false);
+  const [progress, setProgress] = useState<{ corrente: number; totale: number } | null>(null);
   const [nomeFile, setNomeFile] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -150,11 +151,29 @@ export default function ImportExcel({
 
   async function eseguiImport() {
     setImportando(true);
+    if (tipo === "utenti") {
+      setProgress({ corrente: 0, totale: righe.length });
+      let importati = 0;
+      const errori: string[] = [];
+      for (let i = 0; i < righe.length; i++) {
+        setProgress({ corrente: i + 1, totale: righe.length });
+        try {
+          const res = await importa.utenti([righe[i]]);
+          importati += res.data.importati;
+          errori.push(...res.data.errori);
+        } catch {
+          errori.push(`Errore su riga ${i + 1}`);
+        }
+      }
+      setRisultato({ importati, errori });
+      setStep("risultato");
+      if (importati > 0) onImportato();
+      setProgress(null);
+      setImportando(false);
+      return;
+    }
     try {
-      const res =
-        tipo === "operatori"
-          ? await importa.operatori(righe)
-          : await importa.utenti(righe);
+      const res = await importa.operatori(righe);
       setRisultato(res.data);
       setStep("risultato");
       if (res.data.importati > 0) onImportato();
@@ -515,6 +534,23 @@ export default function ImportExcel({
               )}
             </div>
 
+            {progress && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 12, color: "var(--grigio)", marginBottom: 6 }}>
+                  Geolocalizzazione {progress.corrente} di {progress.totale}...
+                </div>
+                <div style={{ background: "var(--bordo)", borderRadius: 4, height: 6 }}>
+                  <div style={{
+                    background: "var(--terra)",
+                    borderRadius: 4,
+                    height: 6,
+                    width: `${(progress.corrente / progress.totale) * 100}%`,
+                    transition: "width 0.2s ease",
+                  }} />
+                </div>
+              </div>
+            )}
+
             <div
               style={{
                 display: "flex",
@@ -525,11 +561,12 @@ export default function ImportExcel({
               <button
                 onClick={() => setStep("upload")}
                 style={btnSecondarioStyle}
+                disabled={importando}
               >
                 ← Indietro
               </button>
               <div style={{ display: "flex", gap: 10 }}>
-                <button onClick={onChiudi} style={btnSecondarioStyle}>
+                <button onClick={onChiudi} style={btnSecondarioStyle} disabled={importando}>
                   Annulla
                 </button>
                 <button
@@ -541,7 +578,9 @@ export default function ImportExcel({
                   style={btnPrimarioStyle}
                 >
                   {importando
-                    ? "Importando..."
+                    ? progress
+                      ? `${progress.corrente}/${progress.totale} geolocalizzati`
+                      : "Importando..."
                     : `Importa ${righe.length} righe`}
                 </button>
               </div>

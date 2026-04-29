@@ -107,7 +107,7 @@ export default function InputIndirizzo({
 
   const posizione: [number, number] = coords
     ? [coords.lat, coords.lon]
-    : [40.8518, 14.2681]; // default Napoli
+    : [41.9028, 12.4964]; // default Roma
 
   return (
     <div style={{ position: "relative" }}>

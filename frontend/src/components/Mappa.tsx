@@ -296,8 +296,8 @@ export default function Mappa() {
 
       {/* Mappa */}
       <MapContainer
-        center={[42.5, 12.5]}
-        zoom={6}
+        center={[41.9028, 12.4964]}
+        zoom={12}
         style={{ height: "calc(100vh - 52px)", width: "100%" }}
         zoomControl
       >

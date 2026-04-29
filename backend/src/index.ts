@@ -15,6 +15,13 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+function formattaIndirizzo(indirizzo: string): string {
+  let addr = indirizzo.replace(/,?\s*Roma\s*$/i, "").trim();
+  const match = addr.match(/^(.+?)[\s,]+(\d+[a-zA-Z]?)$/);
+  if (match) addr = `${match[2]}, ${match[1].trim()}`;
+  return `${addr}, Roma`;
+}
+
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434/v1";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5:14b";
 const GROQ_MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
@@ -1034,7 +1041,7 @@ app.post("/api/import/operatori", async (req, res) => {
         risultati.errori.push(`Riga saltata: nome o qualifica mancante`);
         continue;
       }
-      const coords = r.indirizzo ? await geocodifica(r.indirizzo) : null;
+      const coords = r.indirizzo ? await geocodifica(formattaIndirizzo(r.indirizzo)) : null;
       const emailNorm = r.email?.trim().toLowerCase() || null;
       const commesseNomi: string[] = (r.commessa ?? "")
         .split(",").map((c: string) => c.trim()).filter(Boolean);
@@ -1088,7 +1095,7 @@ app.post("/api/import/utenti", async (req, res) => {
         risultati.errori.push(`Riga saltata: nome mancante`);
         continue;
       }
-      const coords = r.indirizzo ? await geocodifica(r.indirizzo) : null;
+      const coords = r.indirizzo ? await geocodifica(formattaIndirizzo(r.indirizzo)) : null;
       let commessaId: number | null = null;
       if (r.commessa?.trim()) {
         const nome = r.commessa.trim();
