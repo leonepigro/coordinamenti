@@ -15,6 +15,8 @@ interface Operatore {
   telefono: string | null;
   indirizzo: string | null;
   mezzoTrasporto: string | null;
+  lat: number | null;
+  lon: number | null;
   attivo: boolean;
   skills: Skill[];
 }
@@ -306,9 +308,23 @@ export default function Operatori() {
                 }}
               >
                 {op.indirizzo && (
-                  <span style={{ color: "var(--inchiostro)", opacity: 0.6 }}>
-                    📍 {op.indirizzo}
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span style={{ color: "var(--inchiostro)", opacity: 0.6 }}>
+                      📍 {op.indirizzo}
+                    </span>
+                    <span style={{
+                      fontSize: 10,
+                      padding: "1px 6px",
+                      borderRadius: 8,
+                      fontWeight: 500,
+                      background: op.lat ? "#ECFDF5" : "#FFF7ED",
+                      color: op.lat ? "#16a34a" : "#ea580c",
+                      border: `1px solid ${op.lat ? "#86efac" : "#fdba74"}`,
+                      whiteSpace: "nowrap",
+                    }}>
+                      {op.lat ? "geo ✓" : "no geo"}
+                    </span>
+                  </div>
                 )}
                 <div style={{ display: "flex", gap: 14 }}>
                   <span>⏱ {op.oreSettimanali}h/sett.</span>

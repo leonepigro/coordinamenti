@@ -28,6 +28,8 @@ interface Utente {
   indirizzo: string;
   oreSettimanali: number;
   note: string | null;
+  lat: number | null;
+  lon: number | null;
   commessa: { id: number; nome: string } | null;
   piani: Piano[];
   equipe: EquipeUtente[];
@@ -269,14 +271,20 @@ export default function Utenti() {
                     >
                       {u.nome}
                     </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: "var(--grigio)",
-                        marginTop: 2,
-                      }}
-                    >
-                      📍 {u.indirizzo}
+                    <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                      <span>📍 {u.indirizzo}</span>
+                      <span style={{
+                        fontSize: 10,
+                        padding: "1px 6px",
+                        borderRadius: 8,
+                        fontWeight: 500,
+                        background: u.lat ? "#ECFDF5" : "#FFF7ED",
+                        color: u.lat ? "#16a34a" : "#ea580c",
+                        border: `1px solid ${u.lat ? "#86efac" : "#fdba74"}`,
+                        whiteSpace: "nowrap",
+                      }}>
+                        {u.lat ? "geo ✓" : "no geo"}
+                      </span>
                     </div>
                     {u.commessa && (
                       <div style={{ marginTop: 4 }}>
