@@ -29,7 +29,10 @@ async function geocodificaRoma(indirizzo: string): Promise<{ lat: number; lon: n
     const d = data[0];
     const a = d.address ?? {};
     const road = a.road ?? a.pedestrian ?? a.footway ?? "";
-    const num = a.house_number ?? "";
+    // Nominatim spesso non ha il civico in OSM: lo recuperiamo dall'input originale
+    const civicoOSM = a.house_number ?? "";
+    const civicoOriginale = (indirizzo.replace(/\(.*?\)/g, "").match(/[\s,]+(\d+[a-zA-Z/]*)$/) ?? [])[1] ?? "";
+    const num = civicoOSM || civicoOriginale;
     const indirizzoNorm = road ? `${road}${num ? " " + num : ""}, Roma` : q;
     console.log(`[geocodifica] trovato: ${indirizzoNorm} → ${d.lat}, ${d.lon}`);
     return { lat: parseFloat(d.lat), lon: parseFloat(d.lon), indirizzoNorm };
