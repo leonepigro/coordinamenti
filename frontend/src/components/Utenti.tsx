@@ -28,9 +28,12 @@ interface Utente {
   indirizzo: string;
   oreSettimanali: number;
   note: string | null;
+  commessa: { id: number; nome: string } | null;
   piani: Piano[];
   equipe: EquipeUtente[];
 }
+
+const PER_PAGINA = 25;
 
 const GIORNI_LABEL: Record<string, string> = {
   "0": "Dom",
@@ -50,6 +53,8 @@ export default function Utenti() {
   const [selezionato, setSelezionato] = useState<any>(null);
   const [equipeSelezionata, setEquipeSelezionata] = useState<any>(null);
   const [filtro, setFiltro] = useState("");
+  const [filtroCommessa, setFiltroCommessa] = useState("");
+  const [pagina, setPagina] = useState(1);
   const [espanso, setEspanso] = useState<number | null>(null);
   const [mostraImport, setMostraImport] = useState(false);
 
@@ -82,11 +87,23 @@ export default function Utenti() {
     carica();
   }
 
-  const listaFiltrata = lista.filter(
-    (u) =>
+  const commesse = Array.from(new Set(lista.map((u) => u.commessa?.nome).filter(Boolean))) as string[];
+
+  const listaFiltrata = lista.filter((u) => {
+    const matchTesto =
       u.nome.toLowerCase().includes(filtro.toLowerCase()) ||
-      u.indirizzo.toLowerCase().includes(filtro.toLowerCase()),
-  );
+      u.indirizzo.toLowerCase().includes(filtro.toLowerCase());
+    const matchCommessa = !filtroCommessa || u.commessa?.nome === filtroCommessa;
+    return matchTesto && matchCommessa;
+  });
+
+  const totalePagine = Math.ceil(listaFiltrata.length / PER_PAGINA);
+  const listaPaginata = listaFiltrata.slice((pagina - 1) * PER_PAGINA, pagina * PER_PAGINA);
+
+  function aggiornFiltro(fn: () => void) {
+    fn();
+    setPagina(1);
+  }
 
   if (loading)
     return (
@@ -122,7 +139,9 @@ export default function Utenti() {
           <p
             style={{ fontSize: 13, color: "var(--grigio)", margin: "4px 0 0" }}
           >
-            {lista.length} utenti in carico
+            {listaFiltrata.length === lista.length
+            ? `${lista.length} utenti in carico`
+            : `${listaFiltrata.length} di ${lista.length} utenti`}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -138,14 +157,14 @@ export default function Utenti() {
         </div>
       </div>
 
-      {/* Ricerca */}
-      <div style={{ marginBottom: 20 }}>
+      {/* Filtri */}
+      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
         <input
           value={filtro}
-          onChange={(e) => setFiltro(e.target.value)}
+          onChange={(e) => aggiornFiltro(() => setFiltro(e.target.value))}
           placeholder="Cerca per nome o indirizzo..."
           style={{
-            width: "100%",
+            flex: "1 1 220px",
             maxWidth: 320,
             padding: "9px 14px",
             border: "1px solid var(--bordo)",
@@ -158,11 +177,32 @@ export default function Utenti() {
           onFocus={(e) => (e.target.style.borderColor = "var(--terra)")}
           onBlur={(e) => (e.target.style.borderColor = "var(--bordo)")}
         />
+        {commesse.length > 0 && (
+          <select
+            value={filtroCommessa}
+            onChange={(e) => aggiornFiltro(() => setFiltroCommessa(e.target.value))}
+            style={{
+              padding: "9px 14px",
+              border: "1px solid var(--bordo)",
+              borderRadius: 10,
+              fontSize: 13,
+              outline: "none",
+              background: "var(--bianco)",
+              color: filtroCommessa ? "var(--inchiostro)" : "var(--grigio)",
+              cursor: "pointer",
+            }}
+          >
+            <option value="">Tutte le commesse</option>
+            {commesse.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Lista */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {listaFiltrata.map((u) => {
+        {listaPaginata.map((u) => {
           const aperto = espanso === u.id;
           return (
             <div
@@ -238,6 +278,21 @@ export default function Utenti() {
                     >
                       📍 {u.indirizzo}
                     </div>
+                    {u.commessa && (
+                      <div style={{ marginTop: 4 }}>
+                        <span style={{
+                          fontSize: 10,
+                          padding: "2px 8px",
+                          borderRadius: 10,
+                          background: "var(--salvia-light)",
+                          color: "var(--salvia-dark)",
+                          border: "1px solid var(--salvia-dark)33",
+                          fontWeight: 500,
+                        }}>
+                          {u.commessa.nome}
+                        </span>
+                      </div>
+                    )}
                     {u.piani.length > 0 && (
                       <div
                         style={{
@@ -491,15 +546,31 @@ export default function Utenti() {
       </div>
 
       {listaFiltrata.length === 0 && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "48px 0",
-            color: "var(--grigio)",
-            fontSize: 14,
-          }}
-        >
+        <div style={{ textAlign: "center", padding: "48px 0", color: "var(--grigio)", fontSize: 14 }}>
           Nessun utente trovato
+        </div>
+      )}
+
+      {/* Paginazione */}
+      {totalePagine > 1 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 24 }}>
+          <button
+            onClick={() => setPagina((p) => Math.max(1, p - 1))}
+            disabled={pagina === 1}
+            style={{ ...btnSecondarioStyle, opacity: pagina === 1 ? 0.4 : 1 }}
+          >
+            ← Precedente
+          </button>
+          <span style={{ fontSize: 13, color: "var(--grigio)" }}>
+            Pagina {pagina} di {totalePagine} · {listaFiltrata.length} utenti
+          </span>
+          <button
+            onClick={() => setPagina((p) => Math.min(totalePagine, p + 1))}
+            disabled={pagina === totalePagine}
+            style={{ ...btnSecondarioStyle, opacity: pagina === totalePagine ? 0.4 : 1 }}
+          >
+            Successiva →
+          </button>
         </div>
       )}
 

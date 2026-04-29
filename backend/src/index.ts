@@ -139,6 +139,7 @@ app.get("/api/utenti", async (req, res) => {
   const utenti = await prisma.utente.findMany({
     where: { attivo: true },
     include: {
+      commessa: true,
       piani: {
         where: { attivo: true },
         include: { tipoServizio: true },
