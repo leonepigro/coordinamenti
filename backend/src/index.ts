@@ -17,7 +17,7 @@ app.use(express.json());
 
 async function geocodificaRoma(indirizzo: string): Promise<{ lat: number; lon: number } | null> {
   try {
-    const q = indirizzo.replace(/,?\s*Roma\s*$/i, "").trim() + " Roma";
+    const q = indirizzo.replace(/\(.*?\)/g, "").replace(/,?\s*Roma\s*$/i, "").trim() + " Roma";
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&viewbox=12.35,41.78,12.65,42.00&bounded=1`;
     console.log(`[geocodifica] query: ${q}`);
     const res = await fetch(url, { headers: { "User-Agent": "coordinamenti-app/1.0" } });
