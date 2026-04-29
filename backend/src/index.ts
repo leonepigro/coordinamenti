@@ -15,11 +15,17 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-function formattaIndirizzo(indirizzo: string): string {
-  let addr = indirizzo.replace(/,?\s*Roma\s*$/i, "").trim();
-  const match = addr.match(/^(.+?)[\s,]+(\d+[a-zA-Z]?)$/);
-  if (match) addr = `${match[2]}, ${match[1].trim()}`;
-  return `${addr}, Roma`;
+async function geocodificaRoma(indirizzo: string): Promise<{ lat: number; lon: number } | null> {
+  try {
+    const q = indirizzo.replace(/,?\s*Roma\s*$/i, "").trim() + " Roma";
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&viewbox=12.35,41.78,12.65,42.00&bounded=1`;
+    const res = await fetch(url, { headers: { "User-Agent": "coordinamenti-app/1.0" } });
+    const data = (await res.json()) as any[];
+    if (!data.length) return null;
+    return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+  } catch {
+    return null;
+  }
 }
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434/v1";
@@ -1042,7 +1048,7 @@ app.post("/api/import/operatori", async (req, res) => {
         risultati.errori.push(`Riga saltata: nome o qualifica mancante`);
         continue;
       }
-      const coords = r.indirizzo ? await geocodifica(formattaIndirizzo(r.indirizzo)) : null;
+      const coords = r.indirizzo ? await geocodificaRoma(r.indirizzo) : null;
       const emailNorm = r.email?.trim().toLowerCase() || null;
       const commesseNomi: string[] = (r.commessa ?? "")
         .split(",").map((c: string) => c.trim()).filter(Boolean);
@@ -1096,7 +1102,7 @@ app.post("/api/import/utenti", async (req, res) => {
         risultati.errori.push(`Riga saltata: nome mancante`);
         continue;
       }
-      const coords = r.indirizzo ? await geocodifica(formattaIndirizzo(r.indirizzo)) : null;
+      const coords = r.indirizzo ? await geocodificaRoma(r.indirizzo) : null;
       let commessaId: number | null = null;
       if (r.commessa?.trim()) {
         const nome = r.commessa.trim();
