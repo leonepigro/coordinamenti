@@ -21,6 +21,11 @@ async function geocodificaRoma(indirizzo: string): Promise<{ lat: number; lon: n
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&viewbox=12.35,41.78,12.65,42.00&bounded=1&addressdetails=1`;
     console.log(`[geocodifica] query: ${q}`);
     const res = await fetch(url, { headers: { "User-Agent": "coordinamenti-app/1.0" } });
+    const ct = res.headers.get("content-type") ?? "";
+    if (!res.ok || !ct.includes("json")) {
+      console.log(`[geocodifica] risposta non valida da Nominatim: status=${res.status} content-type=${ct}`);
+      return null;
+    }
     const data = (await res.json()) as any[];
     if (!data.length) {
       console.log(`[geocodifica] nessun risultato per: ${q}`);
