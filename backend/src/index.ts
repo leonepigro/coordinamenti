@@ -79,6 +79,8 @@ async function geocodificaRoma(indirizzo: string): Promise<GeoResult | null> {
   return geocodificaNominatim(indirizzo);
 }
 
+const BUILD_TIME = new Date().toISOString();
+
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434/v1";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5:14b";
 const GROQ_MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
@@ -1311,6 +1313,15 @@ app.get("/api/config", (_req, res) => {
     ollamaModel: OLLAMA_MODEL,
     groqModel: GROQ_MODEL,
     ollamaUrl: OLLAMA_BASE_URL,
+  });
+});
+
+app.get("/api/version", (_req, res) => {
+  res.json({
+    env: process.env.RAILWAY_ENVIRONMENT_NAME ?? "local",
+    branch: process.env.RAILWAY_GIT_BRANCH ?? "—",
+    commit: (process.env.RAILWAY_GIT_COMMIT_SHA ?? "—").slice(0, 7),
+    deployedAt: BUILD_TIME,
   });
 });
 

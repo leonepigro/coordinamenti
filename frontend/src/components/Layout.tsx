@@ -98,12 +98,14 @@ export default function Layout({
 }) {
   const ruolo = utente?.ruolo ?? "operatore";
   const [config, setConfig] = useState<{ ollamaModel: string; groqModel: string } | null>(null);
+  const [version, setVersion] = useState<{ env: string; branch: string; commit: string; deployedAt: string } | null>(null);
   const [sidebarAperta, setSidebarAperta] = useState(false);
   const [profiloAperto, setProfiloAperto] = useState(false);
   const [utenteLocale, setUtenteLocale] = useState(utente);
 
   useEffect(() => {
     api.get("/config").then((res) => setConfig(res.data)).catch(() => {});
+    api.get("/version").then((res) => setVersion(res.data)).catch(() => {});
   }, []);
 
   function naviga(p: Pagina) {
@@ -280,16 +282,22 @@ export default function Layout({
           <div style={{ fontSize: 11, color: "var(--grigio)" }}>
             AI · Ollama → Groq
           </div>
-          <div
-            style={{
-              fontSize: 11,
-              color: "rgba(255,255,255,0.2)",
-              marginTop: 2,
-              marginBottom: 10,
-            }}
-          >
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.2)", marginTop: 2, marginBottom: 8 }}>
             {config ? config.ollamaModel : "—"}
           </div>
+          {version && (
+            <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginBottom: 10, lineHeight: 1.6 }}>
+              <span style={{
+                background: version.env === "production" ? "rgba(196,113,74,0.25)" : "rgba(255,255,255,0.08)",
+                color: version.env === "production" ? "var(--terra)" : "var(--grigio)",
+                padding: "1px 6px", borderRadius: 4, fontWeight: 500, marginRight: 6,
+              }}>
+                {version.env}
+              </span>
+              {version.branch} · {version.commit}<br />
+              {new Date(version.deployedAt).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+            </div>
+          )}
           <button
             onClick={() => { setProfiloAperto(true); setSidebarAperta(false); }}
             style={{
