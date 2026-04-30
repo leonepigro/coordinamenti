@@ -50,7 +50,7 @@ async function geocodificaHere(indirizzo: string): Promise<GeoResult | null> {
     const key = process.env.GEOCODING_HERE_KEY;
     if (!key) { console.log(`[geocodifica/here] GEOCODING_HERE_KEY non configurata`); return null; }
     const q = indirizzo.replace(/\(.*?\)/g, "").trim();
-    const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(q + ", Roma")}&apiKey=${key}&in=bbox:12.35,41.78,12.65,42.00&limit=1`;
+    const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(q + ", Roma, Italia")}&apiKey=${key}&in=countryCode%3AITA&limit=1`;
     console.log(`[geocodifica/here] query: ${q}`);
     const res = await fetch(url);
     if (!res.ok) { console.log(`[geocodifica/here] errore: status=${res.status}`); return null; }
