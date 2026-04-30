@@ -1344,7 +1344,7 @@ app.get("/api/mappa", async (req, res) => {
       }),
       prisma.utente.findMany({
         where: { attivo: true, lat: { not: null }, lon: { not: null } },
-        select: { id: true, nome: true, indirizzo: true, lat: true, lon: true },
+        select: { id: true, nome: true, indirizzo: true, lat: true, lon: true, commessa: { select: { id: true, nome: true } } },
         orderBy: { nome: "asc" },
       }),
       prisma.intervento.findMany({

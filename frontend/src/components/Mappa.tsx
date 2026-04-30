@@ -26,6 +26,7 @@ interface UtenteMappa {
   indirizzo: string;
   lat: number;
   lon: number;
+  commessa: { id: number; nome: string } | null;
 }
 
 interface InterventoMappa {
@@ -126,6 +127,7 @@ const FILTRI_CONFIG: { id: FiltroKey; label: string; colore: string }[] = [
 export default function Mappa() {
   const [dati, setDati] = useState<MappaData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [filtroCommessa, setFiltroCommessa] = useState("");
   const [filtri, setFiltri] = useState<Record<FiltroKey, boolean>>({
     utenti: true,
     operatori: true,
@@ -140,13 +142,26 @@ export default function Mappa() {
       .finally(() => setLoading(false));
   }, []);
 
+  const commesseDisponibili = useMemo(() => {
+    if (!dati) return [];
+    const map = new Map<number, string>();
+    dati.utenti.forEach((u) => { if (u.commessa) map.set(u.commessa.id, u.commessa.nome); });
+    return Array.from(map.entries()).sort((a, b) => a[1].localeCompare(b[1]));
+  }, [dati]);
+
+  const utentiFiltrati = useMemo(() => {
+    if (!dati) return [];
+    if (!filtroCommessa) return dati.utenti;
+    return dati.utenti.filter((u) => u.commessa?.id === Number(filtroCommessa));
+  }, [dati, filtroCommessa]);
+
   const puntiMappa = useMemo((): [number, number][] => {
     if (!dati) return [];
     return [
       ...dati.operatori.map((o) => [o.lat, o.lon] as [number, number]),
-      ...dati.utenti.map((u) => [u.lat, u.lon] as [number, number]),
+      ...utentiFiltrati.map((u) => [u.lat, u.lon] as [number, number]),
     ];
-  }, [dati]);
+  }, [dati, utentiFiltrati]);
 
   const posizioniStimate = useMemo(() => {
     if (!dati) return [];
@@ -159,13 +174,13 @@ export default function Mappa() {
     if (!dati) return [];
     const pts: [number, number][] = [];
     if (filtri.utenti)
-      dati.utenti.forEach((u) => pts.push([u.lat, u.lon]));
+      utentiFiltrati.forEach((u) => pts.push([u.lat, u.lon]));
     if (filtri.operatori)
       dati.operatori.forEach((o) => pts.push([o.lat, o.lon]));
     if (filtri.stimata)
       posizioniStimate.forEach((p) => { if (p.inServizio) pts.push([p.lat, p.lon]); });
     return pts.length > 0 ? pts : puntiMappa;
-  }, [dati, filtri, posizioniStimate, puntiMappa]);
+  }, [dati, filtri, posizioniStimate, puntiMappa, utentiFiltrati]);
 
   const percorsiOggi = useMemo(() => {
     if (!dati) return [];
@@ -267,6 +282,30 @@ export default function Mappa() {
           );
         })}
 
+        {commesseDisponibili.length > 0 && (
+          <select
+            value={filtroCommessa}
+            onChange={(e) => setFiltroCommessa(e.target.value)}
+            style={{
+              marginLeft: 8,
+              padding: "4px 10px",
+              borderRadius: 16,
+              border: "1.5px solid " + (filtroCommessa ? "#4a90d9" : "var(--bordo)"),
+              background: filtroCommessa ? "#4a90d922" : "transparent",
+              color: filtroCommessa ? "#2f72b8" : "var(--grigio)",
+              fontSize: 12,
+              fontWeight: filtroCommessa ? 500 : 400,
+              cursor: "pointer",
+              outline: "none",
+            }}
+          >
+            <option value="">Tutti i servizi</option>
+            {commesseDisponibili.map(([id, nome]) => (
+              <option key={id} value={id}>{nome}</option>
+            ))}
+          </select>
+        )}
+
         <div
           style={{
             marginLeft: "auto",
@@ -278,7 +317,7 @@ export default function Mappa() {
         >
           <span>
             <span style={{ color: "#4a90d9", fontWeight: 500 }}>●</span>{" "}
-            {dati.utenti.length} utenti
+            {utentiFiltrati.length}{filtroCommessa ? `/${dati.utenti.length}` : ""} utenti
           </span>
           <span>
             <span style={{ color: "#c17b4e", fontWeight: 500 }}>●</span>{" "}
@@ -325,7 +364,7 @@ export default function Mappa() {
 
         {/* Marker utenti */}
         {filtri.utenti &&
-          dati.utenti.map((u) => (
+          utentiFiltrati.map((u) => (
             <CircleMarker
               key={u.id}
               center={[u.lat, u.lon]}
@@ -340,6 +379,9 @@ export default function Mappa() {
               <Popup>
                 <div style={{ fontSize: 13, lineHeight: 1.5 }}>
                   <strong>{u.nome}</strong>
+                  {u.commessa && (
+                    <><br /><span style={{ fontSize: 10, color: "#4a90d9" }}>{u.commessa.nome}</span></>
+                  )}
                   <br />
                   <span style={{ fontSize: 11, color: "#666" }}>
                     {u.indirizzo}
