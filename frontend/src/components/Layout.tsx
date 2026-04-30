@@ -69,7 +69,7 @@ const tutteLeVoci = [
   },
   {
     id: "servizi",
-    label: "Servizi",
+    label: "Tipi intervento",
     icona: "◉",
     gruppo: "configurazione",
     ruoli: ["admin"],

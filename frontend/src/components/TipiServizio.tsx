@@ -129,12 +129,12 @@ export default function TipiServizio() {
               margin: 0,
             }}
           >
-            Tipi servizio
+            Tipi di intervento
           </h1>
           <p
             style={{ fontSize: 13, color: "var(--grigio)", margin: "4px 0 0" }}
           >
-            {lista.length} servizi configurati
+            {lista.length} tipi configurati
           </p>
         </div>
         <button onClick={apriNuovo} style={btnPrimarioStyle}>
