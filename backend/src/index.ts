@@ -15,36 +15,68 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-async function geocodificaRoma(indirizzo: string): Promise<{ lat: number; lon: number; indirizzoNorm: string } | null> {
+type GeoResult = { lat: number; lon: number; indirizzoNorm: string };
+
+async function geocodificaNominatim(indirizzo: string): Promise<GeoResult | null> {
   try {
     const q = indirizzo.replace(/\(.*?\)/g, "").replace(/,?\s*Roma\s*$/i, "").trim() + " Roma";
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&viewbox=12.35,41.78,12.65,42.00&bounded=1&addressdetails=1`;
-    console.log(`[geocodifica] query: ${q}`);
+    console.log(`[geocodifica/nominatim] query: ${q}`);
     const res = await fetch(url, { headers: { "User-Agent": "coordinamenti-app/1.0" } });
     const ct = res.headers.get("content-type") ?? "";
     if (!res.ok || !ct.includes("json")) {
-      console.log(`[geocodifica] risposta non valida da Nominatim: status=${res.status} content-type=${ct}`);
+      console.log(`[geocodifica/nominatim] risposta non valida: status=${res.status} content-type=${ct}`);
       return null;
     }
     const data = (await res.json()) as any[];
-    if (!data.length) {
-      console.log(`[geocodifica] nessun risultato per: ${q}`);
-      return null;
-    }
+    if (!data.length) { console.log(`[geocodifica/nominatim] nessun risultato per: ${q}`); return null; }
     const d = data[0];
     const a = d.address ?? {};
     const road = a.road ?? a.pedestrian ?? a.footway ?? "";
-    // Nominatim spesso non ha il civico in OSM: lo recuperiamo dall'input originale
     const civicoOSM = a.house_number ?? "";
     const civicoOriginale = (indirizzo.replace(/\(.*?\)/g, "").match(/[\s,]+(\d+[a-zA-Z/]*)$/) ?? [])[1] ?? "";
     const num = civicoOSM || civicoOriginale;
     const indirizzoNorm = road ? `${road}${num ? " " + num : ""}, Roma` : q;
-    console.log(`[geocodifica] trovato: ${indirizzoNorm} → ${d.lat}, ${d.lon}`);
+    console.log(`[geocodifica/nominatim] trovato: ${indirizzoNorm} → ${d.lat}, ${d.lon}`);
     return { lat: parseFloat(d.lat), lon: parseFloat(d.lon), indirizzoNorm };
   } catch (e) {
-    console.error(`[geocodifica] errore per "${indirizzo}":`, e);
+    console.error(`[geocodifica/nominatim] errore per "${indirizzo}":`, e);
     return null;
   }
+}
+
+async function geocodificaHere(indirizzo: string): Promise<GeoResult | null> {
+  try {
+    const key = process.env.GEOCODING_HERE_KEY;
+    if (!key) { console.log(`[geocodifica/here] GEOCODING_HERE_KEY non configurata`); return null; }
+    const q = indirizzo.replace(/\(.*?\)/g, "").trim();
+    const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(q + ", Roma")}&apiKey=${key}&in=bbox:12.35,41.78,12.65,42.00&limit=1`;
+    console.log(`[geocodifica/here] query: ${q}`);
+    const res = await fetch(url);
+    if (!res.ok) { console.log(`[geocodifica/here] errore: status=${res.status}`); return null; }
+    const data = await res.json() as any;
+    const items: any[] = data.items ?? [];
+    if (!items.length) { console.log(`[geocodifica/here] nessun risultato per: ${q}`); return null; }
+    const item = items[0];
+    const a = item.address ?? {};
+    const road = a.street ?? "";
+    const civicoHere = a.houseNumber ?? "";
+    const civicoOriginale = (indirizzo.replace(/\(.*?\)/g, "").match(/[\s,]+(\d+[a-zA-Z/]*)$/) ?? [])[1] ?? "";
+    const num = civicoHere || civicoOriginale;
+    const indirizzoNorm = road ? `${road}${num ? " " + num : ""}, Roma` : q;
+    console.log(`[geocodifica/here] trovato: ${indirizzoNorm} → ${item.position.lat}, ${item.position.lng}`);
+    return { lat: item.position.lat, lon: item.position.lng, indirizzoNorm };
+  } catch (e) {
+    console.error(`[geocodifica/here] errore per "${indirizzo}":`, e);
+    return null;
+  }
+}
+
+async function geocodificaRoma(indirizzo: string): Promise<GeoResult | null> {
+  const engine = (process.env.GEOCODING_ENGINE ?? "nominatim").toLowerCase();
+  console.log(`[geocodifica] engine: ${engine}`);
+  if (engine === "here") return geocodificaHere(indirizzo);
+  return geocodificaNominatim(indirizzo);
 }
 
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434/v1";
