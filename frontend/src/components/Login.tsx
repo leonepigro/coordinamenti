@@ -6,6 +6,7 @@ export default function Login({ onLogin }: { onLogin: (utente: any) => void }) {
   const [password, setPassword] = useState("");
   const [errore, setErrore] = useState("");
   const [loading, setLoading] = useState(false);
+  const [mostraPassword, setMostraPassword] = useState(false);
 
   async function accedi() {
     if (!email.trim() || !password.trim()) return;
@@ -108,16 +109,38 @@ export default function Login({ onLogin }: { onLogin: (utente: any) => void }) {
 
         <div style={{ marginBottom: 8 }}>
           <label style={labelStyle}>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && accedi()}
-            placeholder="••••••••••••"
-            style={inputStyle}
-            onFocus={(e) => (e.target.style.borderColor = "var(--terra)")}
-            onBlur={(e) => (e.target.style.borderColor = "var(--bordo)")}
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type={mostraPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && accedi()}
+              placeholder="••••••••••••"
+              style={{ ...inputStyle, paddingRight: 44 }}
+              onFocus={(e) => (e.target.style.borderColor = "var(--terra)")}
+              onBlur={(e) => (e.target.style.borderColor = "var(--bordo)")}
+            />
+            <button
+              type="button"
+              onClick={() => setMostraPassword((v) => !v)}
+              style={{
+                position: "absolute",
+                right: 12,
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: 0,
+                color: "var(--grigio)",
+                fontSize: 16,
+                lineHeight: 1,
+              }}
+              tabIndex={-1}
+            >
+              {mostraPassword ? "🙈" : "👁"}
+            </button>
+          </div>
         </div>
 
         {errore && (
