@@ -98,7 +98,7 @@ export default function Login({ onLogin }: { onLogin: (utente: any) => void }) {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && accedi()}
-            placeholder="paola@coordinamenti.it"
+            placeholder="La tua email"
             autoFocus
             style={inputStyle}
             onFocus={(e) => (e.target.style.borderColor = "var(--terra)")}
