@@ -110,9 +110,6 @@ export default function Dashboard({
 
   if (!dati) return null;
 
-  const haProblemi =
-    dati.interventiScoperti.length > 0 || dati.indisponibili.length > 0;
-
   return (
     <div className="cm-page" style={{ padding: 32, maxWidth: 860 }}>
       {/* Header */}
