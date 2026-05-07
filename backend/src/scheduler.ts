@@ -12,6 +12,8 @@ interface SlotIntervento {
   durata: number;
   tipoServizioId: number;
   skillRichieste: number[];
+  vincoloSesso: string | null;
+  vincoloNazionalita: string | null;
 }
 
 interface AssegnazioneIntervento extends SlotIntervento {
@@ -145,6 +147,8 @@ export async function generaTurni(
           durata: piano.durata ?? piano.tipoServizio.durata,
           tipoServizioId: piano.tipoServizioId,
           skillRichieste,
+          vincoloSesso: piano.vincoloSesso,
+          vincoloNazionalita: piano.vincoloNazionalita,
         });
       }
     }
@@ -173,6 +177,9 @@ export async function generaTurni(
       if (utente?.commessaId && op.commesse.length > 0) {
         if (!op.commesse.some((c) => c.commessaId === utente.commessaId)) return false;
       }
+
+      if (slot.vincoloSesso && op.sesso !== slot.vincoloSesso) return false;
+      if (slot.vincoloNazionalita && op.nazionalita !== slot.vincoloNazionalita) return false;
 
       const skillOp = new Set(op.skills.map((s) => s.skillId));
       if (!slot.skillRichieste.every((s) => skillOp.has(s))) return false;

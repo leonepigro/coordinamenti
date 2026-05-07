@@ -16,6 +16,8 @@ interface Piano {
   oraInizio: string;
   durata: number | null;
   skillIds: number[] | null;
+  vincoloSesso: string;
+  vincoloNazionalita: string;
 }
 
 const GIORNI = [
@@ -61,6 +63,8 @@ export default function ModalUtente({
       oraInizio: p.oraInizio,
       durata: p.durata ?? null,
       skillIds: p.skills?.length > 0 ? p.skills.map((s: any) => s.skill?.id ?? s.skillId) : null,
+      vincoloSesso: p.vincoloSesso ?? "",
+      vincoloNazionalita: p.vincoloNazionalita ?? "",
     })) ?? [],
   );
   const [tipi, setTipi] = useState<TipoServizio[]>([]);
@@ -104,6 +108,8 @@ export default function ModalUtente({
         oraInizio: "08:00",
         durata: null,
         skillIds: null,
+        vincoloSesso: "",
+        vincoloNazionalita: "",
       },
     ]);
   }
@@ -482,6 +488,33 @@ export default function ModalUtente({
                     </div>
                   );
                 })()}
+
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, color: "#aaa", marginBottom: 3 }}>Vincolo sesso</div>
+                    <select
+                      value={piano.vincoloSesso}
+                      onChange={(e) => aggiornaPiano(idx, "vincoloSesso" as any, e.target.value)}
+                      style={{ ...inputStyle, fontSize: 12 }}
+                    >
+                      <option value="">Nessuno</option>
+                      <option value="M">Solo uomini</option>
+                      <option value="F">Solo donne</option>
+                    </select>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, color: "#aaa", marginBottom: 3 }}>Vincolo nazionalità</div>
+                    <select
+                      value={piano.vincoloNazionalita}
+                      onChange={(e) => aggiornaPiano(idx, "vincoloNazionalita" as any, e.target.value)}
+                      style={{ ...inputStyle, fontSize: 12 }}
+                    >
+                      <option value="">Nessuno</option>
+                      <option value="IT">Solo italiani</option>
+                      <option value="non-IT">Solo stranieri</option>
+                    </select>
+                  </div>
+                </div>
 
                 <div style={{ fontSize: 11, color: "#aaa", marginTop: 6 }}>
                   {nGiorni} {nGiorni === 1 ? "giorno" : "giorni"} · {durataEffettiva}min · {oreServizio}h/sett.

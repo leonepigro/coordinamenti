@@ -24,6 +24,8 @@ model Operatore {
   indisponibilita Indisponibilita[]
   commesse        OperatoreCommessa[]
   mezzoTrasporto  String  @default("foot")  // driving | cycling | foot
+  sesso           String?                  // M | F
+  nazionalita     String?                  // IT | non-IT
   email           String?
   utenteApp       UtenteApp?
 }
@@ -107,6 +109,8 @@ model PianoAssistenziale {
   giorniSettimana String
   oraInizio      String
   durata         Int?
+  vincoloSesso        String?  // M | F
+  vincoloNazionalita  String?  // IT | non-IT
   attivo         Boolean      @default(true)
   utente         Utente       @relation(fields: [utenteId], references: [id])
   tipoServizio   TipoServizio @relation(fields: [tipoServizioId], references: [id])

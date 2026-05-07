@@ -319,6 +319,8 @@ app.post("/api/operatori", async (req, res) => {
     preferenzaTurno,
     telefono,
     mezzoTrasporto,
+    sesso,
+    nazionalita,
     skillIds,
     commessaIds,
     lat,
@@ -335,6 +337,8 @@ app.post("/api/operatori", async (req, res) => {
       preferenzaTurno,
       telefono,
       mezzoTrasporto,
+      sesso: sesso || null,
+      nazionalita: nazionalita || null,
       email: email?.toLowerCase().trim() || null,
       lat: coords?.lat,
       lon: coords?.lon,
@@ -372,6 +376,8 @@ app.put("/api/operatori/:id", async (req, res) => {
     preferenzaTurno,
     telefono,
     mezzoTrasporto,
+    sesso,
+    nazionalita,
     skillIds,
     commessaIds,
     lat,
@@ -391,6 +397,8 @@ app.put("/api/operatori/:id", async (req, res) => {
       preferenzaTurno,
       telefono,
       mezzoTrasporto,
+      sesso: sesso || null,
+      nazionalita: nazionalita || null,
       email: email?.toLowerCase().trim() || null,
       lat: coords?.lat,
       lon: coords?.lon,
@@ -457,6 +465,8 @@ app.post("/api/utenti", async (req, res) => {
           giorniSettimana: p.giorniSettimana,
           oraInizio: p.oraInizio,
           durata: p.durata ? parseInt(p.durata) : null,
+          vincoloSesso: p.vincoloSesso || null,
+          vincoloNazionalita: p.vincoloNazionalita || null,
           skills: p.skillIds?.length ? { create: p.skillIds.map((id: number) => ({ skillId: id })) } : undefined,
         })),
       },
@@ -487,6 +497,8 @@ app.put("/api/utenti/:id", async (req, res) => {
           giorniSettimana: p.giorniSettimana,
           oraInizio: p.oraInizio,
           durata: p.durata ? parseInt(p.durata) : null,
+          vincoloSesso: p.vincoloSesso || null,
+          vincoloNazionalita: p.vincoloNazionalita || null,
           skills: p.skillIds?.length ? { create: p.skillIds.map((id: number) => ({ skillId: id })) } : undefined,
         })),
       },
@@ -750,7 +762,7 @@ app.get("/api/piani", async (req, res) => {
 });
 
 app.post("/api/piani", async (req, res) => {
-  const { utenteId, tipoServizioId, giorniSettimana, oraInizio, durata, skillIds } = req.body;
+  const { utenteId, tipoServizioId, giorniSettimana, oraInizio, durata, skillIds, vincoloSesso, vincoloNazionalita } = req.body;
   const piano = await prisma.pianoAssistenziale.create({
     data: {
       utenteId,
@@ -758,6 +770,8 @@ app.post("/api/piani", async (req, res) => {
       giorniSettimana,
       oraInizio,
       durata: durata ? parseInt(durata) : null,
+      vincoloSesso: vincoloSesso || null,
+      vincoloNazionalita: vincoloNazionalita || null,
       skills: skillIds?.length ? { create: skillIds.map((id: number) => ({ skillId: id })) } : undefined,
     },
     include: { tipoServizio: { include: { skills: true } }, utente: true, skills: { include: { skill: true } } },
@@ -766,7 +780,7 @@ app.post("/api/piani", async (req, res) => {
 });
 
 app.put("/api/piani/:id", async (req, res) => {
-  const { tipoServizioId, giorniSettimana, oraInizio, durata, skillIds } = req.body;
+  const { tipoServizioId, giorniSettimana, oraInizio, durata, skillIds, vincoloSesso, vincoloNazionalita } = req.body;
   const id = parseInt(req.params.id);
   await prisma.pianoSkill.deleteMany({ where: { pianoId: id } });
   const piano = await prisma.pianoAssistenziale.update({
@@ -776,6 +790,8 @@ app.put("/api/piani/:id", async (req, res) => {
       giorniSettimana,
       oraInizio,
       durata: durata ? parseInt(durata) : null,
+      vincoloSesso: vincoloSesso || null,
+      vincoloNazionalita: vincoloNazionalita || null,
       skills: skillIds?.length ? { create: skillIds.map((sid: number) => ({ skillId: sid })) } : undefined,
     },
     include: { tipoServizio: { include: { skills: true } }, utente: true, skills: { include: { skill: true } } },

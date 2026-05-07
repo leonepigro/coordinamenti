@@ -19,6 +19,8 @@ interface OperatoreForm {
   skillIds: number[];
   commessaIds: number[];
   mezzoTrasporto: string;
+  sesso: string;
+  nazionalita: string;
   lat?: number;
   lon?: number;
 }
@@ -49,6 +51,8 @@ export default function ModalOperatore({
     skillIds: operatore?.skills?.map((s: any) => s.skillId) ?? [],
     commessaIds: operatore?.commesse?.map((c: any) => c.commessaId) ?? [],
     mezzoTrasporto: operatore?.mezzoTrasporto ?? "foot",
+    sesso: operatore?.sesso ?? "",
+    nazionalita: operatore?.nazionalita ?? "",
     indirizzo: operatore?.indirizzo ?? "",
     lat: operatore?.lat ?? undefined,
     lon: operatore?.lon ?? undefined,
@@ -232,19 +236,38 @@ export default function ModalOperatore({
             <label style={labelStyle}>Mezzo di trasporto</label>
             <select
               value={form.mezzoTrasporto}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, mezzoTrasporto: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, mezzoTrasporto: e.target.value }))}
               style={inputStyle}
             >
               {MEZZI.map((m) => (
-                <option key={m.value} value={m.value}>
-                  {m.label}
-                </option>
+                <option key={m.value} value={m.value}>{m.label}</option>
               ))}
             </select>
           </div>
-          ;
+          <div>
+            <label style={labelStyle}>Sesso</label>
+            <select
+              value={form.sesso}
+              onChange={(e) => setForm((f) => ({ ...f, sesso: e.target.value }))}
+              style={inputStyle}
+            >
+              <option value="">— Non specificato —</option>
+              <option value="M">Uomo</option>
+              <option value="F">Donna</option>
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Nazionalità</label>
+            <select
+              value={form.nazionalita}
+              onChange={(e) => setForm((f) => ({ ...f, nazionalita: e.target.value }))}
+              style={inputStyle}
+            >
+              <option value="">— Non specificata —</option>
+              <option value="IT">Italiana</option>
+              <option value="non-IT">Straniera</option>
+            </select>
+          </div>
         </div>
 
         <div>
