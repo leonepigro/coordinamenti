@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import OpenAI from "openai";
+import Anthropic from "@anthropic-ai/sdk";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
@@ -84,12 +85,16 @@ const BUILD_TIME = new Date().toISOString();
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434/v1";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5:14b";
 const GROQ_MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
 
 const ollama = new OpenAI({ baseURL: OLLAMA_BASE_URL, apiKey: "ollama" });
 const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
   apiKey: process.env.GROQ_API_KEY,
 });
+const anthropic = process.env.ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
 
 const JWT_SECRET = process.env.JWT_SECRET ?? "fallback_secret";
 const PAOLA_HASH = bcrypt.hashSync(
@@ -1691,30 +1696,125 @@ app.get("/api/turni-miei", async (req: any, res) => {
 });
 
 //----------------------------------TOOL CALL ---------------------------------------//
+
+function oaiToolsToAnthropic(tools: any[]): Anthropic.Tool[] {
+  return tools.map((t) => ({
+    name: t.function.name,
+    description: t.function.description ?? "",
+    input_schema: (t.function.parameters ?? { type: "object", properties: {} }) as Anthropic.Tool.InputSchema,
+  }));
+}
+
+function oaiMessagesToAnthropic(messages: any[]): Anthropic.MessageParam[] {
+  const result: Anthropic.MessageParam[] = [];
+  let i = 0;
+  while (i < messages.length) {
+    const m = messages[i];
+    if (m.role === "system") { i++; continue; }
+
+    if (m.role === "user" && typeof m.content === "string") {
+      result.push({ role: "user", content: m.content });
+      i++;
+    } else if (m.role === "assistant") {
+      if (m.tool_calls?.length) {
+        result.push({
+          role: "assistant",
+          content: m.tool_calls.map((tc: any) => ({
+            type: "tool_use" as const,
+            id: tc.id,
+            name: tc.function.name,
+            input: (() => { try { return JSON.parse(tc.function.arguments || "{}"); } catch { return {}; } })(),
+          })),
+        });
+      } else {
+        result.push({ role: "assistant", content: m.content ?? "" });
+      }
+      i++;
+    } else if (m.role === "tool") {
+      // raggruppa tool results consecutivi in un singolo messaggio user
+      const toolResults: Anthropic.ToolResultBlockParam[] = [];
+      while (i < messages.length && messages[i].role === "tool") {
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: messages[i].tool_call_id,
+          content: messages[i].content,
+        });
+        i++;
+      }
+      result.push({ role: "user", content: toolResults });
+    } else {
+      i++;
+    }
+  }
+  return result;
+}
+
+async function chatWithClaude(params: { messages: any[]; tools: any[] }) {
+  const systemMsg = params.messages.find((m) => m.role === "system");
+  const system = systemMsg?.content ?? "";
+  const anthropicMessages = oaiMessagesToAnthropic(params.messages);
+  const anthropicTools = oaiToolsToAnthropic(params.tools);
+
+  const response = await anthropic!.messages.create({
+    model: ANTHROPIC_MODEL,
+    max_tokens: 2048,
+    system,
+    messages: anthropicMessages,
+    tools: anthropicTools,
+  });
+
+  const textBlock = response.content.find((b) => b.type === "text") as Anthropic.TextBlock | undefined;
+  const toolBlocks = response.content.filter((b) => b.type === "tool_use") as Anthropic.ToolUseBlock[];
+
+  return {
+    res: {
+      choices: [{
+        message: {
+          content: textBlock?.text ?? null,
+          tool_calls: toolBlocks.length > 0 ? toolBlocks.map((b) => ({
+            id: b.id,
+            type: "function",
+            function: { name: b.name, arguments: JSON.stringify(b.input) },
+          })) : undefined,
+        },
+        finish_reason: response.stop_reason,
+      }],
+    },
+    provider: "claude",
+  };
+}
+
 async function chatWithFallback(params: any) {
+  // Claude (se ANTHROPIC_API_KEY configurato)
+  if (anthropic) {
+    try {
+      console.log("🟣 Provo Claude");
+      const result = await chatWithClaude(params);
+      console.log(`✅ Risposta da Claude (${ANTHROPIC_MODEL})`);
+      return result;
+    } catch (err: any) {
+      console.warn("🔴 Claude fallito →", err?.message ?? err);
+    }
+  }
+
+  // Ollama (locale)
   try {
     console.log("🟢 Provo Ollama");
-
     const res = await ollama.chat.completions.create({
       ...params,
       model: OLLAMA_MODEL,
       temperature: 0,
     });
-
     console.log("✅ Risposta da Ollama");
-
     return { res, provider: "ollama" };
-  } catch (err) {
+  } catch {
     console.warn("🔴 Ollama fallito → uso Groq");
-
     const res = await groq.chat.completions.create({
       ...params,
       model: GROQ_MODEL,
       temperature: 0,
     });
-
     console.log("✅ Risposta da Groq");
-
     return { res, provider: "groq" };
   }
 }
