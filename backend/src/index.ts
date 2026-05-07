@@ -1281,9 +1281,10 @@ app.post("/api/chat/stream", async (req, res) => {
 
     invia("fine", {});
     res.end();
-  } catch (e) {
+  } catch (e: any) {
     console.error(e);
-    invia("errore", { testo: "Errore di connessione. Riprova." });
+    const msg = e?.message ?? "Errore di connessione.";
+    invia("errore", { testo: msg });
     res.end();
   }
 });
@@ -1791,7 +1792,29 @@ async function chatWithClaude(params: { messages: any[]; tools: any[] }) {
   };
 }
 
+function categorizzaErroreAI(provider: string, err: any): string {
+  const status = err?.status ?? err?.response?.status;
+  const msg = (err?.message ?? err?.error?.message ?? "").toLowerCase();
+
+  if (status === 401 || status === 403) return `${provider}: chiave API non valida o non autorizzata`;
+  if (status === 402) return `${provider}: crediti esauriti — ricarica il piano`;
+  if (status === 429) {
+    if (msg.includes("credit") || msg.includes("insufficient") || msg.includes("balance")) {
+      return `${provider}: crediti esauriti — ricarica il piano`;
+    }
+    const retry = err?.headers?.["retry-after"] ?? err?.headers?.get?.("retry-after");
+    const minuti = retry ? Math.ceil(parseInt(retry) / 60) : null;
+    return `${provider}: limite token giornaliero raggiunto${minuti ? ` — riprova tra ${minuti} min` : ""}`;
+  }
+  if (status === 503 || msg.includes("unavailable") || msg.includes("connection")) {
+    return `${provider}: non raggiungibile`;
+  }
+  return `${provider}: errore (${status ?? "sconosciuto"})`;
+}
+
 async function chatWithFallback(params: any) {
+  const falliti: string[] = [];
+
   // Claude (se ANTHROPIC_API_KEY configurato)
   if (anthropic) {
     try {
@@ -1800,7 +1823,9 @@ async function chatWithFallback(params: any) {
       console.log(`✅ Risposta da Claude (${ANTHROPIC_MODEL})`);
       return result;
     } catch (err: any) {
-      console.warn("🔴 Claude fallito →", err?.message ?? err);
+      const desc = categorizzaErroreAI("Claude", err);
+      console.warn("🔴", desc);
+      falliti.push(desc);
     }
   }
 
@@ -1816,7 +1841,9 @@ async function chatWithFallback(params: any) {
       console.log(`✅ Risposta da Gemini (${GEMINI_MODEL})`);
       return { res, provider: "gemini" };
     } catch (err: any) {
-      console.warn("🔴 Gemini fallito →", err?.message ?? err);
+      const desc = categorizzaErroreAI("Gemini", err);
+      console.warn("🔴", desc);
+      falliti.push(desc);
     }
   }
 
@@ -1830,8 +1857,14 @@ async function chatWithFallback(params: any) {
     });
     console.log("✅ Risposta da Ollama");
     return { res, provider: "ollama" };
-  } catch {
-    console.warn("🔴 Ollama fallito → uso Groq");
+  } catch (err: any) {
+    const desc = categorizzaErroreAI("Ollama", err);
+    console.warn("🔴", desc);
+    falliti.push(desc);
+  }
+
+  // Groq
+  try {
     const res = await groq.chat.completions.create({
       ...params,
       model: GROQ_MODEL,
@@ -1839,7 +1872,14 @@ async function chatWithFallback(params: any) {
     });
     console.log("✅ Risposta da Groq");
     return { res, provider: "groq" };
+  } catch (err: any) {
+    const desc = categorizzaErroreAI("Groq", err);
+    console.warn("🔴", desc);
+    falliti.push(desc);
   }
+
+  // Tutti i provider hanno fallito
+  throw new Error(`Nessun provider AI disponibile:\n${falliti.map((f) => `• ${f}`).join("\n")}`);
 }
 
 import { toolDefinitions, eseguiTool } from "./tools";
