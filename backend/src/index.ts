@@ -456,6 +456,7 @@ app.post("/api/utenti", async (req, res) => {
           tipoServizioId: p.tipoServizioId,
           giorniSettimana: p.giorniSettimana,
           oraInizio: p.oraInizio,
+          durata: p.durata ? parseInt(p.durata) : null,
         })),
       },
     },
@@ -484,6 +485,7 @@ app.put("/api/utenti/:id", async (req, res) => {
           tipoServizioId: p.tipoServizioId,
           giorniSettimana: p.giorniSettimana,
           oraInizio: p.oraInizio,
+          durata: p.durata ? parseInt(p.durata) : null,
         })),
       },
     },
@@ -746,13 +748,14 @@ app.get("/api/piani", async (req, res) => {
 });
 
 app.post("/api/piani", async (req, res) => {
-  const { utenteId, tipoServizioId, giorniSettimana, oraInizio } = req.body;
+  const { utenteId, tipoServizioId, giorniSettimana, oraInizio, durata } = req.body;
   const piano = await prisma.pianoAssistenziale.create({
     data: {
       utenteId,
       tipoServizioId: parseInt(tipoServizioId),
       giorniSettimana,
       oraInizio,
+      durata: durata ? parseInt(durata) : null,
     },
     include: { tipoServizio: true, utente: true },
   });
@@ -760,13 +763,14 @@ app.post("/api/piani", async (req, res) => {
 });
 
 app.put("/api/piani/:id", async (req, res) => {
-  const { tipoServizioId, giorniSettimana, oraInizio } = req.body;
+  const { tipoServizioId, giorniSettimana, oraInizio, durata } = req.body;
   const piano = await prisma.pianoAssistenziale.update({
     where: { id: parseInt(req.params.id) },
     data: {
       tipoServizioId: parseInt(tipoServizioId),
       giorniSettimana,
       oraInizio,
+      durata: durata ? parseInt(durata) : null,
     },
     include: { tipoServizio: true, utente: true },
   });

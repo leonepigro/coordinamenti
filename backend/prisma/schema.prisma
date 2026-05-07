@@ -105,6 +105,7 @@ model PianoAssistenziale {
   tipoServizioId Int
   giorniSettimana String
   oraInizio      String
+  durata         Int?
   attivo         Boolean      @default(true)
   utente         Utente       @relation(fields: [utenteId], references: [id])
   tipoServizio   TipoServizio @relation(fields: [tipoServizioId], references: [id])

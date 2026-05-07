@@ -13,6 +13,7 @@ interface Piano {
   tipoServizioId: number;
   giorniSettimana: string;
   oraInizio: string;
+  durata: number | null;
 }
 
 const GIORNI = [
@@ -56,6 +57,7 @@ export default function ModalUtente({
       tipoServizioId: p.tipoServizioId,
       giorniSettimana: p.giorniSettimana,
       oraInizio: p.oraInizio,
+      durata: p.durata ?? null,
     })) ?? [],
   );
   const [tipi, setTipi] = useState<TipoServizio[]>([]);
@@ -97,6 +99,7 @@ export default function ModalUtente({
         tipoServizioId: tipi[0].id,
         giorniSettimana: "1,2,3,4,5",
         oraInizio: "08:00",
+        durata: null,
       },
     ]);
   }
@@ -106,7 +109,8 @@ export default function ModalUtente({
     return piani.reduce((tot, p) => {
       const tipo = tipi.find((t) => t.id === Number(p.tipoServizioId));
       const nGiorni = p.giorniSettimana.split(",").filter(Boolean).length;
-      return tot + (tipo ? (tipo.durata * nGiorni) / 60 : 0);
+      const durata = p.durata ?? tipo?.durata ?? 0;
+      return tot + (durata * nGiorni) / 60;
     }, 0);
   }
 
@@ -306,9 +310,8 @@ export default function ModalUtente({
             const nGiorni = piano.giorniSettimana
               .split(",")
               .filter(Boolean).length;
-            const oreServizio = tipo
-              ? ((tipo.durata * nGiorni) / 60).toFixed(1)
-              : "0";
+            const durataEffettiva = piano.durata ?? tipo?.durata ?? 0;
+            const oreServizio = ((durataEffettiva * nGiorni) / 60).toFixed(1);
 
             return (
               <div
@@ -338,21 +341,32 @@ export default function ModalUtente({
                   >
                     <select
                       value={piano.tipoServizioId}
-                      onChange={(e) =>
-                        aggiornaPiano(
-                          idx,
-                          "tipoServizioId",
-                          parseInt(e.target.value),
-                        )
-                      }
+                      onChange={(e) => {
+                        const nuovoId = parseInt(e.target.value);
+                        setPiani((prev) => prev.map((p, i) =>
+                          i === idx ? { ...p, tipoServizioId: nuovoId, durata: null } : p
+                        ));
+                      }}
                       style={{ ...inputStyle, width: "auto", flex: 1 }}
                     >
                       {tipi.map((t) => (
                         <option key={t.id} value={t.id}>
-                          {t.nome} — {t.durata}min
+                          {t.nome}
                         </option>
                       ))}
                     </select>
+                    <input
+                      type="number"
+                      value={piano.durata ?? ""}
+                      onChange={(e) =>
+                        aggiornaPiano(idx, "durata", e.target.value ? parseInt(e.target.value) : null as any)
+                      }
+                      placeholder={`${tipo?.durata ?? 60}min`}
+                      style={{ ...inputStyle, width: 80 }}
+                      min={5}
+                      step={5}
+                      title="Durata personalizzata (min)"
+                    />
                     <select
                       value={piano.oraInizio}
                       onChange={(e) =>
@@ -411,8 +425,10 @@ export default function ModalUtente({
                 </div>
 
                 <div style={{ fontSize: 11, color: "#aaa" }}>
-                  {nGiorni} {nGiorni === 1 ? "giorno" : "giorni"} ·{" "}
-                  {oreServizio}h/sett.
+                  {nGiorni} {nGiorni === 1 ? "giorno" : "giorni"} · {durataEffettiva}min · {oreServizio}h/sett.
+                  {piano.durata && piano.durata !== tipo?.durata && (
+                    <span style={{ color: "#c17b4e", marginLeft: 6 }}>personalizzata</span>
+                  )}
                 </div>
               </div>
             );

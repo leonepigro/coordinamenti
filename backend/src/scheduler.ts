@@ -141,7 +141,7 @@ export async function generaTurni(
           utenteId: utente.id,
           turno: oraToTurno(piano.oraInizio),
           data: new Date(cursor),
-          durata: piano.tipoServizio.durata,
+          durata: piano.durata ?? piano.tipoServizio.durata,
           tipoServizioId: piano.tipoServizioId,
           skillRichieste,
         });
