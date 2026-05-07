@@ -41,6 +41,8 @@ interface UtenteGap {
   eta: number | null;
   diagnosi: string | null;
   capacitaMotorie: string | null;
+  note: string | null;
+  serviziAttuali: string[];
   operatoriDisponibili: { id: number; nome: string; qualifica: string; oreSettimanali: number; isPreferito: boolean }[];
 }
 
@@ -289,16 +291,23 @@ export default function Dashboard({
             )}
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {gapFiltrato.map((u) => {
+                const profilo = [
+                  u.eta ? `${u.eta} anni` : null,
+                  u.diagnosi ? `diagnosi: ${u.diagnosi}` : null,
+                  u.capacitaMotorie ? `capacità motorie: ${u.capacitaMotorie}` : null,
+                  u.note ? `note: ${u.note}` : null,
+                ].filter(Boolean).join(", ");
+
                 const testoSuggerimento =
-                  `Utente ${u.nome}${u.commessa ? ` (servizio: ${u.commessa})` : ""}` +
-                  (u.eta ? `, ${u.eta} anni` : "") +
-                  (u.diagnosi ? `, diagnosi: ${u.diagnosi}` : "") +
-                  (u.capacitaMotorie ? `, capacità motorie: ${u.capacitaMotorie}` : "") +
-                  `.\nHa ${u.oreContratto}h settimanali contrattualizzate ma solo ${u.orePianificate}h pianificate, con un gap di ${u.gapOre}h.\n` +
+                  `Profilo utente: ${u.nome}${u.commessa ? ` (servizio: ${u.commessa})` : ""}${profilo ? ` — ${profilo}` : ""}.\n\n` +
+                  `Situazione ore: contratto ${u.oreContratto}h/sett., pianificate ${u.orePianificate}h, gap da coprire ${u.gapOre}h.\n\n` +
+                  (u.serviziAttuali.length > 0
+                    ? `Servizi già nel piano assistenziale (NON riproporre): ${u.serviziAttuali.join(", ")}.\n\n`
+                    : "") +
                   (u.operatoriDisponibili.length > 0
-                    ? `Operatori disponibili con skill compatibili: ${u.operatoriDisponibili.map((op) => `${op.nome} (${op.qualifica}, ${op.oreSettimanali}h/sett.${op.isPreferito ? ", preferito" : ""})`).join(", ")}.\n`
-                    : "Nessun operatore con skill compatibili trovato.\n") +
-                  `Suggerisci come coprire queste ore: quali attività aggiungere al piano assistenziale e come distribuirle tra gli operatori disponibili.`;
+                    ? `Operatori disponibili: ${u.operatoriDisponibili.map((op) => `${op.nome} (${op.qualifica}${op.isPreferito ? ", preferito" : ""})`).join(", ")}.\n\n`
+                    : "") +
+                  `Obiettivo: proponi 2-3 attività NUOVE, non ancora nel piano, che potrebbero migliorare la qualità di vita di questo utente e che la famiglia o l'utente stesso potrebbe essere motivato ad accettare come ore aggiuntive. Considera diagnosi, capacità motorie ed età. Per ogni attività indica: nome, durata consigliata, frequenza settimanale, e perché potrebbe fare la differenza per questo utente. Indica anche quale operatore tra quelli disponibili sarebbe più adatto.`;
 
                 return (
                   <div key={u.id} style={{ padding: "14px 16px", borderRadius: 10, border: "1px solid #e8d5c4", background: "#fffaf7", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>

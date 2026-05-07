@@ -1062,6 +1062,8 @@ app.get("/api/gap-ore", async (_req, res) => {
       eta,
       diagnosi: utente.diagnosi ?? null,
       capacitaMotorie: utente.capacitaMotorie ?? null,
+      note: utente.note ?? null,
+      serviziAttuali: utente.piani.map((p) => p.tipoServizio.nome),
       operatoriDisponibili: candidati.map((op) => ({
         id: op.id,
         nome: op.nome,
