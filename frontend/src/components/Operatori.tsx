@@ -37,12 +37,15 @@ const MEZZO_LABEL: Record<string, string> = {
   foot: "🚶 Piedi",
 };
 
+const PER_PAGINA = 25;
+
 export default function Operatori() {
   const [lista, setLista] = useState<Operatore[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalAperto, setModalAperto] = useState(false);
   const [selezionato, setSelezionato] = useState<any>(null);
   const [filtro, setFiltro] = useState("");
+  const [pagina, setPagina] = useState(1);
   const [mostraImport, setMostraImport] = useState(false);
 
   async function carica() {
@@ -75,6 +78,9 @@ export default function Operatori() {
       op.nome.toLowerCase().includes(filtro.toLowerCase()) ||
       op.qualifica.toLowerCase().includes(filtro.toLowerCase()),
   );
+
+  const totalePagine = Math.ceil(listaFiltrata.length / PER_PAGINA);
+  const listaPaginata = listaFiltrata.slice((pagina - 1) * PER_PAGINA, pagina * PER_PAGINA);
 
   if (loading)
     return (
@@ -110,7 +116,9 @@ export default function Operatori() {
           <p
             style={{ fontSize: 13, color: "var(--grigio)", margin: "4px 0 0" }}
           >
-            {lista.length} operatori attivi
+            {listaFiltrata.length === lista.length
+            ? `${lista.length} operatori attivi`
+            : `${listaFiltrata.length} di ${lista.length} operatori`}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
@@ -130,7 +138,7 @@ export default function Operatori() {
       <div style={{ marginBottom: 20 }}>
         <input
           value={filtro}
-          onChange={(e) => setFiltro(e.target.value)}
+          onChange={(e) => { setFiltro(e.target.value); setPagina(1); }}
           placeholder="Cerca per nome o qualifica..."
           style={{
             width: "100%",
@@ -156,7 +164,7 @@ export default function Operatori() {
           gap: 14,
         }}
       >
-        {listaFiltrata.map((op) => {
+        {listaPaginata.map((op) => {
           const stile = QUALIFICA_STYLE[op.qualifica] ?? {
             bg: "var(--sabbia)",
             color: "var(--grigio)",
@@ -342,15 +350,30 @@ export default function Operatori() {
       </div>
 
       {listaFiltrata.length === 0 && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "48px 0",
-            color: "var(--grigio)",
-            fontSize: 14,
-          }}
-        >
+        <div style={{ textAlign: "center", padding: "48px 0", color: "var(--grigio)", fontSize: 14 }}>
           Nessun operatore trovato
+        </div>
+      )}
+
+      {totalePagine > 1 && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 24 }}>
+          <button
+            onClick={() => setPagina((p) => Math.max(1, p - 1))}
+            disabled={pagina === 1}
+            style={{ ...btnSecondarioStyle, opacity: pagina === 1 ? 0.4 : 1 }}
+          >
+            ← Precedente
+          </button>
+          <span style={{ fontSize: 13, color: "var(--grigio)" }}>
+            Pagina {pagina} di {totalePagine} · {listaFiltrata.length} operatori
+          </span>
+          <button
+            onClick={() => setPagina((p) => Math.min(totalePagine, p + 1))}
+            disabled={pagina === totalePagine}
+            style={{ ...btnSecondarioStyle, opacity: pagina === totalePagine ? 0.4 : 1 }}
+          >
+            Successiva →
+          </button>
         </div>
       )}
 
