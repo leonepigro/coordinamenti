@@ -153,113 +153,57 @@ export default function Dashboard({
         </button>
       </div>
 
-      {/* Interventi scoperti */}
-      {dati.interventiScoperti.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              marginBottom: 12,
-            }}
-          >
-            <div
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: "#c94040",
-              }}
-            />
-            <span
-              style={{ fontSize: 13, fontWeight: 500, color: "#c94040" }}
-            >
-              {dati.interventiScoperti.length === 1
-                ? "1 intervento senza operatore"
-                : `${dati.interventiScoperti.length} interventi senza operatore`}
-            </span>
-          </div>
+      {/* Scoperti oggi */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <div style={{ width: 7, height: 7, borderRadius: "50%", background: dati.interventiScoperti.length > 0 ? "#c94040" : "#86c986" }} />
+          <span style={{ fontSize: 13, fontWeight: 500, color: dati.interventiScoperti.length > 0 ? "#c94040" : "#2d6e2d" }}>
+            {dati.interventiScoperti.length === 0
+              ? "Tutti gli interventi di oggi hanno un operatore"
+              : dati.interventiScoperti.length === 1
+              ? "1 intervento senza operatore oggi"
+              : `${dati.interventiScoperti.length} interventi senza operatore oggi`}
+          </span>
+        </div>
+        {dati.interventiScoperti.length > 0 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {dati.interventiScoperti.map((i) => (
-              <div
-                key={i.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "12px 16px",
-                  borderRadius: 10,
-                  border: "1px solid #f5c6c6",
-                  background: "#fff8f8",
-                }}
-              >
+              <div key={i.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 10, border: "1px solid #f5c6c6", background: "#fff8f8" }}>
                 <div>
-                  <div
-                    style={{
-                      fontSize: 13,
-                      fontWeight: 500,
-                      color: "var(--inchiostro)",
-                    }}
-                  >
-                    {i.utente}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      color: "var(--grigio)",
-                      marginTop: 2,
-                    }}
-                  >
-                    {i.servizio} · {i.turno} · {i.durata} min
-                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: "var(--inchiostro)" }}>{i.utente}</div>
+                  <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 2 }}>{i.servizio} · {i.turno} · {i.durata} min</div>
                 </div>
-                <button
-                  onClick={() => apriAssegna(i)}
-                  style={{
-                    padding: "6px 16px",
-                    borderRadius: 7,
-                    border: "none",
-                    background: "var(--terra)",
-                    color: "var(--bianco)",
-                    fontSize: 12,
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    flexShrink: 0,
-                  }}
-                >
+                <button onClick={() => apriAssegna(i)} style={{ padding: "6px 16px", borderRadius: 7, border: "none", background: "var(--terra)", color: "var(--bianco)", fontSize: 12, fontWeight: 500, cursor: "pointer", flexShrink: 0 }}>
                   Assegna
                 </button>
               </div>
             ))}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Scoperto questa settimana per servizio */}
-      {dati.scopertiSettimana?.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 11, fontWeight: 500, color: "var(--grigio)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>
-            Ore scoperte questa settimana
-          </div>
-          {dati.scopertiSettimana.map((gruppo) => (
-            <div key={gruppo.nomeServizio} style={{ marginBottom: 18 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--inchiostro)", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 11, fontWeight: 500, color: "var(--grigio)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
+          Ore scoperte questa settimana
+        </div>
+        {!dati.scopertiSettimana?.length ? (
+          <div style={{ fontSize: 13, color: "var(--grigio)" }}>Nessuno slot scoperto questa settimana.</div>
+        ) : (
+          dati.scopertiSettimana.map((gruppo) => (
+            <div key={gruppo.nomeServizio} style={{ marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
                 <span style={{ padding: "2px 10px", borderRadius: 20, background: "var(--terra-light)", color: "var(--terra-dark)", border: "1px solid var(--terra)33", fontSize: 11, fontWeight: 500 }}>
                   {gruppo.nomeServizio}
                 </span>
-                <span style={{ fontSize: 11, color: "var(--grigio)" }}>
-                  {gruppo.interventi.length} slot scoperti
-                </span>
+                <span style={{ fontSize: 11, color: "var(--grigio)" }}>{gruppo.interventi.length} slot</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {gruppo.interventi.map((i) => (
                   <div key={i.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--bordo)", background: "var(--sabbia)" }}>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 500, color: "var(--inchiostro)" }}>{i.utente}</div>
-                      <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 2 }}>
-                        {i.data} · {i.servizio} · {i.turno} · {i.durata} min
-                      </div>
+                      <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 2 }}>{i.data} · {i.servizio} · {i.turno} · {i.durata} min</div>
                     </div>
                     <button onClick={() => apriAssegna(i)} style={{ padding: "5px 14px", borderRadius: 7, border: "none", background: "var(--terra)", color: "var(--bianco)", fontSize: 12, fontWeight: 500, cursor: "pointer", flexShrink: 0 }}>
                       Assegna
@@ -268,78 +212,28 @@ export default function Dashboard({
                 ))}
               </div>
             </div>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
-      {/* Operatori assenti */}
-      {dati.indisponibili.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 500,
-              color: "var(--grigio)",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              marginBottom: 10,
-            }}
-          >
-            Operatori assenti oggi
-          </div>
+      {/* Operatori assenti oggi */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 11, fontWeight: 500, color: "var(--grigio)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 10 }}>
+          Operatori assenti oggi
+        </div>
+        {dati.indisponibili.length === 0 ? (
+          <div style={{ fontSize: 13, color: "var(--grigio)" }}>Nessun operatore assente oggi.</div>
+        ) : (
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {dati.indisponibili.map((op, idx) => (
-              <div
-                key={idx}
-                style={{
-                  padding: "8px 14px",
-                  borderRadius: 8,
-                  border: "1px solid var(--bordo)",
-                  background: "var(--sabbia)",
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 500,
-                    color: "var(--inchiostro)",
-                  }}
-                >
-                  {op.nome}
-                </div>
-                {op.motivo && (
-                  <div
-                    style={{
-                      fontSize: 11,
-                      color: "var(--grigio)",
-                      marginTop: 1,
-                    }}
-                  >
-                    {op.motivo}
-                  </div>
-                )}
+              <div key={idx} style={{ padding: "8px 14px", borderRadius: 8, border: "1px solid var(--bordo)", background: "var(--sabbia)" }}>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "var(--inchiostro)" }}>{op.nome}</div>
+                {op.motivo && <div style={{ fontSize: 11, color: "var(--grigio)", marginTop: 1 }}>{op.motivo}</div>}
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      {/* Tutto ok */}
-      {!haProblemi && (
-        <div
-          style={{
-            padding: "16px 20px",
-            borderRadius: 10,
-            border: "1px solid #b8e0b8",
-            background: "#f4fbf4",
-            marginBottom: 28,
-            fontSize: 13,
-            color: "#2d6e2d",
-          }}
-        >
-          Tutti gli interventi di oggi hanno un operatore assegnato.
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Sovraccarichi */}
       {dati.sovraccarichi.length > 0 && (
