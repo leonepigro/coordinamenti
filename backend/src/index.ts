@@ -1029,7 +1029,7 @@ app.get("/api/gap-ore", async (_req, res) => {
     const oreContratto = utente.oreSettimanali;
     const gapOre = Math.round((oreContratto - orePianificate) * 10) / 10;
 
-    if (gapOre <= 0) continue;
+    if (gapOre <= 0 || orePianificate < 1) continue;
 
     const skillRichieste = new Set<number>();
     for (const piano of utente.piani) {
