@@ -1089,47 +1089,7 @@ function estraiUtente(req: any): { nome: string; ruolo: string; email: string } 
   return { nome: "Collaboratore", ruolo: "operatore", email: "" };
 }
 
-function buildSystemPrompt(nome: string, ruolo: string): string {
-  const oggi = new Date().toLocaleDateString("it-IT");
-  const isCoord = ruolo === "admin" || ruolo === "coordinatore";
-  const ruoloDesc = isCoord ? "coordinatore del gruppo Coordina*menti*" : "operatore del gruppo Coordina*menti*";
-
-  return `Sei l'assistente di ${nome}, ${ruoloDesc}.
-Oggi è ${oggi}.
-Rivolgiti sempre a ${nome} direttamente, usando il suo nome quando appropriato.
-Il gruppo si chiama Coordina*menti* — usalo quando ti riferisci all'organizzazione.
-
-Hai accesso a un database completo con questi dati:
-- Operatori: qualifica, skill, ore contrattuali, mezzo di trasporto, preferenza turno
-- Utenti: piano assistenziale, ore settimanali assegnate, note cliniche
-- Interventi: turni generati, completati o da completare
-- Equipe: gruppi di operatori assegnati a ogni utente con ruoli
-- Piani assistenziali: servizi ricorrenti per utente con giorni e orari fissi
-- Tipi servizio: durata e skill richieste per ogni tipo di intervento
-- Skill: competenze degli operatori (es. Patente B, Medicazioni avanzate)
-- Indisponibilità: assenze presenti e future degli operatori
-
-Hai accesso ai seguenti strumenti:
-- genera_turni: genera i turni per un periodo dato
-- ottimizza_percorso: ordina le visite minimizzando i km
-- trova_sostituto: individua sostituti per un operatore assente
-- get_operatori, get_utenti, get_interventi_giorno, get_skill, get_tipi_servizio, get_equipe, get_piani_assistenziali, get_indisponibilita, get_statistiche: lettura dati
-- get_qualifiche, aggiungi_qualifica: gestione qualifiche
-- invia_email_riepilogo: invia riepilogo giornaliero agli operatori via email
-- invia_email_aggiornamento: invia aggiornamento pianificazione per un periodo
-
-Regole operative:
-- Usa sempre i tool per rispondere a domande sui dati — non inventare mai nomi, numeri o situazioni
-- Se viene chiesto di generare turni senza specificare le date, chiedi il periodo desiderato
-- Se trovi un operatore assente con interventi assegnati, proponi subito i sostituti
-- Segnala quando un utente non ha copertura o un operatore supera le ore contrattuali
-
-Formato delle risposte:
-- Rispondi sempre in italiano, in modo conciso e operativo
-- Per liste usa un formato leggibile con a capo
-- Per situazioni urgenti evidenzia il problema chiaramente
-- Non aggiungere disclaimer o spiegazioni inutili — vai dritto al punto
-
+const CATALOGO_ATTIVITA = `
 ---
 CATALOGO ATTIVITÀ SOCIOASSISTENZIALI (usa come riferimento per proporre attività nuove):
 
@@ -1169,6 +1129,52 @@ PER DIAGNOSI SPECIFICHE
 - Disabilità intellettiva: laboratori creativi, autonomia quotidiana, abilità sociali
 - Post-operatorio / allettamento: mobilizzazione, esercizi respiratori, prevenzione decubiti
 ---`;
+
+const KEYWORDS_ATTIVITA = ["attività", "gap", "ore da coprire", "suggerisci", "pianifica", "proponi", "gap di", "piano assistenziale", "non coperte", "ore mancanti", "qualità di vita"];
+
+function buildSystemPrompt(nome: string, ruolo: string, messaggio?: string): string {
+  const oggi = new Date().toLocaleDateString("it-IT");
+  const isCoord = ruolo === "admin" || ruolo === "coordinatore";
+  const ruoloDesc = isCoord ? "coordinatore del gruppo Coordina*menti*" : "operatore del gruppo Coordina*menti*";
+  const includeCatalogo = messaggio
+    ? KEYWORDS_ATTIVITA.some((k) => messaggio.toLowerCase().includes(k))
+    : false;
+
+  return `Sei l'assistente di ${nome}, ${ruoloDesc}.
+Oggi è ${oggi}.
+Rivolgiti sempre a ${nome} direttamente, usando il suo nome quando appropriato.
+Il gruppo si chiama Coordina*menti* — usalo quando ti riferisci all'organizzazione.
+
+Hai accesso a un database completo con questi dati:
+- Operatori: qualifica, skill, ore contrattuali, mezzo di trasporto, preferenza turno
+- Utenti: piano assistenziale, ore settimanali assegnate, note cliniche
+- Interventi: turni generati, completati o da completare
+- Equipe: gruppi di operatori assegnati a ogni utente con ruoli
+- Piani assistenziali: servizi ricorrenti per utente con giorni e orari fissi
+- Tipi servizio: durata e skill richieste per ogni tipo di intervento
+- Skill: competenze degli operatori (es. Patente B, Medicazioni avanzate)
+- Indisponibilità: assenze presenti e future degli operatori
+
+Hai accesso ai seguenti strumenti:
+- genera_turni: genera i turni per un periodo dato
+- ottimizza_percorso: ordina le visite minimizzando i km
+- trova_sostituto: individua sostituti per un operatore assente
+- get_operatori, get_utenti, get_interventi_giorno, get_skill, get_tipi_servizio, get_equipe, get_piani_assistenziali, get_indisponibilita, get_statistiche: lettura dati
+- get_qualifiche, aggiungi_qualifica: gestione qualifiche
+- invia_email_riepilogo: invia riepilogo giornaliero agli operatori via email
+- invia_email_aggiornamento: invia aggiornamento pianificazione per un periodo
+
+Regole operative:
+- Usa sempre i tool per rispondere a domande sui dati — non inventare mai nomi, numeri o situazioni
+- Se viene chiesto di generare turni senza specificare le date, chiedi il periodo desiderato
+- Se trovi un operatore assente con interventi assegnati, proponi subito i sostituti
+- Segnala quando un utente non ha copertura o un operatore supera le ore contrattuali
+
+Formato delle risposte:
+- Rispondi sempre in italiano, in modo conciso e operativo
+- Per liste usa un formato leggibile con a capo
+- Per situazioni urgenti evidenzia il problema chiaramente
+- Non aggiungere disclaimer o spiegazioni inutili — vai dritto al punto${includeCatalogo ? CATALOGO_ATTIVITA : ""}`;
 }
 
 app.post("/api/chat/stream", async (req, res) => {
@@ -1183,10 +1189,11 @@ app.post("/api/chat/stream", async (req, res) => {
 
   try {
     const { message, history = [] } = req.body;
-    const messages = [...history, { role: "user" as const, content: message }];
+    const trimmedHistory = (history as any[]).slice(-8);
+    const messages = [...trimmedHistory, { role: "user" as const, content: message }];
 
     const utente = estraiUtente(req);
-    const systemPrompt = buildSystemPrompt(utente.nome, utente.ruolo);
+    const systemPrompt = buildSystemPrompt(utente.nome, utente.ruolo, message);
 
     let currentMessages = [...messages];
     let maxSteps = 5;
@@ -1719,11 +1726,11 @@ app.post("/api/chat", async (req, res) => {
     console.log("✅ entro nella root api/chat");
 
     const { message, history = [] } = req.body;
-
-    const messages = [...history, { role: "user" as const, content: message }];
+    const trimmedHistory = (history as any[]).slice(-8);
+    const messages = [...trimmedHistory, { role: "user" as const, content: message }];
 
     const utente = estraiUtente(req);
-    const systemPrompt = buildSystemPrompt(utente.nome, utente.ruolo);
+    const systemPrompt = buildSystemPrompt(utente.nome, utente.ruolo, message);
 
     let risposta = "";
     let currentMessages = [...messages];
