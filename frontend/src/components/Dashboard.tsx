@@ -38,6 +38,9 @@ interface UtenteGap {
   oreContratto: number;
   orePianificate: number;
   gapOre: number;
+  eta: number | null;
+  diagnosi: string | null;
+  capacitaMotorie: string | null;
   operatoriDisponibili: { id: number; nome: string; qualifica: string; oreSettimanali: number; isPreferito: boolean }[];
 }
 
@@ -72,9 +75,7 @@ export default function Dashboard({
     }
   }
 
-  useEffect(() => {
-    caricaDati();
-  }, []);
+  useEffect(() => { void caricaDati(); }, []);
 
   async function apriAssegna(i: InterventoScoperto) {
     setSelezionato(i);

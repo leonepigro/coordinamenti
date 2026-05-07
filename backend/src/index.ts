@@ -445,7 +445,7 @@ app.delete("/api/operatori/:id", async (req, res) => {
 // --- UTENTI ---
 
 app.post("/api/utenti", async (req, res) => {
-  const { nome, indirizzo, oreSettimanali, note, piani, commessaId, lat, lon } = req.body;
+  const { nome, indirizzo, oreSettimanali, note, piani, commessaId, lat, lon, dataNascita, diagnosi, capacitaMotorie } = req.body;
   const coords = lat && lon ? { lat, lon } : await geocodifica(indirizzo);
   const utente = await prisma.utente.create({
     data: {
@@ -456,6 +456,9 @@ app.post("/api/utenti", async (req, res) => {
       commessaId: commessaId ?? null,
       lat: coords?.lat,
       lon: coords?.lon,
+      dataNascita: dataNascita ? new Date(dataNascita) : null,
+      diagnosi: diagnosi || null,
+      capacitaMotorie: capacitaMotorie || null,
       piani: {
         create: piani.map((p: any) => ({
           tipoServizioId: p.tipoServizioId,
@@ -475,7 +478,7 @@ app.post("/api/utenti", async (req, res) => {
 
 app.put("/api/utenti/:id", async (req, res) => {
   const id = parseInt(req.params.id);
-  const { nome, indirizzo, oreSettimanali, note, piani, commessaId, lat, lon } = req.body;
+  const { nome, indirizzo, oreSettimanali, note, piani, commessaId, lat, lon, dataNascita, diagnosi, capacitaMotorie } = req.body;
   const coords = lat && lon ? { lat, lon } : await geocodifica(indirizzo);
   await prisma.pianoAssistenziale.deleteMany({ where: { utenteId: id } });
   const utente = await prisma.utente.update({
@@ -488,6 +491,9 @@ app.put("/api/utenti/:id", async (req, res) => {
       commessaId: commessaId ?? null,
       lat: coords?.lat,
       lon: coords?.lon,
+      dataNascita: dataNascita ? new Date(dataNascita) : null,
+      diagnosi: diagnosi || null,
+      capacitaMotorie: capacitaMotorie || null,
       piani: {
         create: piani.map((p: any) => ({
           tipoServizioId: p.tipoServizioId,
@@ -1042,6 +1048,10 @@ app.get("/api/gap-ore", async (_req, res) => {
       return [...skillRichieste].some((s) => skillOp.has(s));
     });
 
+    const eta = utente.dataNascita
+      ? Math.floor((Date.now() - utente.dataNascita.getTime()) / (1000 * 60 * 60 * 24 * 365.25))
+      : null;
+
     risultati.push({
       id: utente.id,
       nome: utente.nome,
@@ -1049,6 +1059,9 @@ app.get("/api/gap-ore", async (_req, res) => {
       oreContratto,
       orePianificate,
       gapOre,
+      eta,
+      diagnosi: utente.diagnosi ?? null,
+      capacitaMotorie: utente.capacitaMotorie ?? null,
       operatoriDisponibili: candidati.map((op) => ({
         id: op.id,
         nome: op.nome,

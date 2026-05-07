@@ -53,6 +53,9 @@ export default function ModalUtente({
     commessaId: utente?.commessaId ?? null as number | null,
     lat: utente?.lat ?? undefined,
     lon: utente?.lon ?? undefined,
+    dataNascita: utente?.dataNascita ? new Date(utente.dataNascita).toISOString().slice(0, 10) : "",
+    diagnosi: utente?.diagnosi ?? "",
+    capacitaMotorie: utente?.capacitaMotorie ?? "",
   });
   const [commesseDisponibili, setCommesseDisponibili] = useState<{ id: number; nome: string }[]>([]);
 
@@ -255,13 +258,42 @@ export default function ModalUtente({
               }
             />
           </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label style={labelStyle}>Data di nascita</label>
+              <input
+                type="date"
+                value={form.dataNascita}
+                onChange={(e) => setForm((f) => ({ ...f, dataNascita: e.target.value }))}
+                style={inputStyle}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Diagnosi</label>
+              <input
+                value={form.diagnosi}
+                onChange={(e) => setForm((f) => ({ ...f, diagnosi: e.target.value }))}
+                style={inputStyle}
+                placeholder="Es. Emiplegia dx, SLA..."
+              />
+            </div>
+          </div>
+          <div>
+            <label style={labelStyle}>Capacità motorie</label>
+            <input
+              value={form.capacitaMotorie}
+              onChange={(e) => setForm((f) => ({ ...f, capacitaMotorie: e.target.value }))}
+              style={inputStyle}
+              placeholder="Es. Deambula con bastone, allettato, autonomo nei trasferimenti..."
+            />
+          </div>
           <div>
             <label style={labelStyle}>Note assistenziali</label>
             <textarea
               value={form.note}
               onChange={(e) => setForm((f) => ({ ...f, note: e.target.value }))}
               style={{ ...inputStyle, height: 80, resize: "vertical" }}
-              placeholder="Patologie, note, preferenze..."
+              placeholder="Altre note, preferenze..."
             />
           </div>
 

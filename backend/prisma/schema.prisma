@@ -94,6 +94,9 @@ model Utente {
   lon              Float?
   oreSettimanali   Int                  @default(10)
   note             String?
+  dataNascita      DateTime?
+  diagnosi         String?
+  capacitaMotorie  String?
   attivo           Boolean              @default(true)
   createdAt        DateTime             @default(now())
   piani            PianoAssistenziale[]
