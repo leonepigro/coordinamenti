@@ -81,18 +81,18 @@ export const toolDefinitions = [
     function: {
       name: "trova_sostituto",
       description:
-        "Trova i migliori sostituti per un operatore assente in una data e turno. IMPORTANTE: chiama prima get_operatori per ottenere l'ID numerico dell'operatore (campo 'id'). Il turno deve essere esattamente 'mattina' o 'pomeriggio'.",
+        "Trova i migliori sostituti per un operatore assente. IMPORTANTE: devi prima chiamare get_operatori per ottenere l'ID numerico intero dell'operatore (campo 'id'). Non usare mai stringhe come 'nessuno' o nomi come valore di operatoreAssenteId. Il turno è opzionale: se non specificato cerca sostituti per entrambi i turni.",
       parameters: {
         type: "object",
         properties: {
           operatoreAssenteId: {
             type: "number",
-            description: "ID numerico dell'operatore assente (ottenuto da get_operatori)",
+            description: "ID numerico intero dell'operatore assente, ricavato dal campo 'id' di get_operatori",
           },
           data: { type: "string", description: "Data YYYY-MM-DD" },
-          turno: { type: "string", enum: ["mattina", "pomeriggio"] },
+          turno: { type: "string", enum: ["mattina", "pomeriggio"], description: "Turno specifico (opzionale)" },
         },
-        required: ["operatoreAssenteId", "data", "turno"],
+        required: ["operatoreAssenteId", "data"],
       },
     },
   },
@@ -334,12 +334,14 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
       const fine = new Date(args.data);
       fine.setHours(23, 59, 59, 999);
 
+      const whereInterventi: any = {
+        operatoreId: args.operatoreAssenteId,
+        data: { gte: inizio, lte: fine },
+      };
+      if (args.turno) whereInterventi.turno = args.turno;
+
       const interventiAssente = await prisma.intervento.findMany({
-        where: {
-          operatoreId: args.operatoreAssenteId,
-          turno: args.turno,
-          data: { gte: inizio, lte: fine },
-        },
+        where: whereInterventi,
         include: { tipoServizio: { include: { skills: true } }, utente: true },
       });
 
@@ -365,7 +367,7 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
           const skillC = new Set(c.skills.map((s) => s.skillId));
           return [...skillNecessarie].every((s) => skillC.has(s));
         })
-        .filter((c) => !c.preferenzaTurno || c.preferenzaTurno === args.turno)
+        .filter((c) => !args.turno || !c.preferenzaTurno || c.preferenzaTurno === args.turno)
         .map((c) => ({
           id: c.id,
           nome: c.nome,
