@@ -1128,7 +1128,47 @@ Formato delle risposte:
 - Rispondi sempre in italiano, in modo conciso e operativo
 - Per liste usa un formato leggibile con a capo
 - Per situazioni urgenti evidenzia il problema chiaramente
-- Non aggiungere disclaimer o spiegazioni inutili — vai dritto al punto`;
+- Non aggiungere disclaimer o spiegazioni inutili — vai dritto al punto
+
+---
+CATALOGO ATTIVITÀ SOCIOASSISTENZIALI (usa come riferimento per proporre attività nuove):
+
+STIMOLAZIONE COGNITIVA
+- Memory training / giochi di memoria (carte, parole, numeri): mantiene lucidità, ideale per anziani con lieve decadimento
+- Lettura guidata o ascolto audiolibri: stimola concentrazione e immaginazione
+- Reminiscenza: rievocare ricordi con foto e oggetti personali, riduce ansia e senso di isolamento
+- Cruciverba, sudoku, quiz: autonomia cognitiva quotidiana
+- Conversazione strutturata su argomenti di interesse: linguaggio, orientamento temporale
+
+MOTRICITÀ E RIABILITAZIONE
+- Mobilizzazione passiva e stretching assistito: previene contratture, mantiene range articolare
+- Esercizi posturali seduti: rinforzo core, equilibrio, prevenzione cadute
+- Camminate assistite (indoor o outdoor): coordinazione, tono muscolare, umore
+- Ginnastica dolce con musica: più coinvolgente, adatta anche a chi è parzialmente allettato
+- Coordinazione fine (palla antistress, pasta da modellare): utile post-ictus, Parkinson
+
+AUTONOMIA E VITA QUOTIDIANA
+- Preparazione pasti semplici assistita: senso di utilità, autonomia, stimolo cognitivo
+- Gestione e organizzazione farmaci con supervisione: responsabilizzazione, sicurezza
+- Cura personale guidata (vestirsi, pettinarsi): mantenimento autonomia, dignità
+- Gestione piccole commissioni accompagnate: reinserimento sociale
+
+SOCIALE E RELAZIONALE
+- Videochiamata con familiari lontani: riduce solitudine, rinforza legami
+- Attività creative (pittura, disegno, collage): espressione, autostima
+- Musicoterapia informale (ascolto musica preferita, canto): effetto su umore e dolore cronico
+- Lettura del giornale insieme e commento: orientamento alla realtà, stimolo cognitivo
+- Giardinaggio in vaso o balcone: contatto con natura, ritmo stagionale, responsabilità
+
+PER DIAGNOSI SPECIFICHE
+- Ictus / emiplegia: esercizi lato paretico, linguaggio, deglutizione, cammino assistito
+- Parkinson: esercizi voce (LSVT), ritmo con musica, esercizi equilibrio, calligrafia
+- Demenza / Alzheimer: routine strutturata, reminiscenza, musica familiare, validazione emotiva
+- SLA / malattie neuromuscolari: comunicazione aumentativa, postura, respirazione assistita
+- Depressione / isolamento: attività sociali, uscite brevi, pet therapy se possibile
+- Disabilità intellettiva: laboratori creativi, autonomia quotidiana, abilità sociali
+- Post-operatorio / allettamento: mobilizzazione, esercizi respiratori, prevenzione decubiti
+---`;
 }
 
 app.post("/api/chat/stream", async (req, res) => {
