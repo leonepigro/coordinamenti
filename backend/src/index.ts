@@ -1757,10 +1757,12 @@ function oaiMessagesToAnthropic(messages: any[]): Anthropic.MessageParam[] {
 
 async function chatWithOllamaNative(params: { messages: any[]; tools: any[] }) {
   const url = `${OLLAMA_BASE_URL}/api/chat`;
+  console.log(`[ollama] POST ${url} model=${OLLAMA_MODEL}`);
   const body = { model: OLLAMA_MODEL, messages: params.messages, tools: params.tools, stream: false };
   const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   if (!resp.ok) {
     const text = await resp.text().catch(() => "");
+    console.error(`[ollama] ${resp.status}: ${text}`);
     throw Object.assign(new Error(`Ollama ${resp.status}: ${text}`), { status: resp.status });
   }
   const data = await resp.json() as any;
