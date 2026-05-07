@@ -1864,38 +1864,9 @@ async function chatWithFallback(params: any) {
   //   }
   // }
 
-  // // Gemini (se GEMINI_API_KEY configurato)
-  // if (gemini) {
-  //   try {
-  //     console.log("🔵 Provo Gemini");
-  //     const res = await gemini.chat.completions.create({
-  //       ...params,
-  //       model: GEMINI_MODEL,
-  //       temperature: 0,
-  //     });
-  //     console.log(`✅ Risposta da Gemini (${GEMINI_MODEL})`);
-  //     return { res, provider: "gemini" };
-  //   } catch (err: any) {
-  //     const desc = categorizzaErroreAI("Gemini", err);
-  //     console.warn("🔴", desc);
-  //     falliti.push(desc);
-  //   }
-  // }
-
-  // Ollama (locale / Railway) — usa API nativa /api/chat
+  // Groq (primario)
   try {
-    console.log("🟢 Provo Ollama");
-    const result = await chatWithOllamaNative(params);
-    console.log("✅ Risposta da Ollama");
-    return result;
-  } catch (err: any) {
-    const desc = categorizzaErroreAI("Ollama", err);
-    console.warn("🔴", desc);
-    falliti.push(desc);
-  }
-
-  // Groq
-  try {
+    console.log("🟠 Provo Groq");
     const res = await groq.chat.completions.create({
       ...params,
       model: GROQ_MODEL,
@@ -1908,6 +1879,36 @@ async function chatWithFallback(params: any) {
     console.warn("🔴", desc);
     falliti.push(desc);
   }
+
+  // Gemini (fallback)
+  if (gemini) {
+    try {
+      console.log("🔵 Provo Gemini");
+      const res = await gemini.chat.completions.create({
+        ...params,
+        model: GEMINI_MODEL,
+        temperature: 0,
+      });
+      console.log(`✅ Risposta da Gemini (${GEMINI_MODEL})`);
+      return { res, provider: "gemini" };
+    } catch (err: any) {
+      const desc = categorizzaErroreAI("Gemini", err);
+      console.warn("🔴", desc);
+      falliti.push(desc);
+    }
+  }
+
+  // // Ollama (locale / Railway) — usa API nativa /api/chat
+  // try {
+  //   console.log("🟢 Provo Ollama");
+  //   const result = await chatWithOllamaNative(params);
+  //   console.log("✅ Risposta da Ollama");
+  //   return result;
+  // } catch (err: any) {
+  //   const desc = categorizzaErroreAI("Ollama", err);
+  //   console.warn("🔴", desc);
+  //   falliti.push(desc);
+  // }
 
   // Tutti i provider hanno fallito
   throw new Error(`Nessun provider AI disponibile:\n${falliti.map((f) => `• ${f}`).join("\n")}`);
