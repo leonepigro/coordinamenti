@@ -73,9 +73,8 @@ export async function generaTurni(
       piani: {
         where: { attivo: true },
         include: {
-          tipoServizio: {
-            include: { skills: true },
-          },
+          tipoServizio: { include: { skills: true } },
+          skills: true,
         },
       },
       equipe: {
@@ -135,7 +134,9 @@ export async function generaTurni(
         const giorni = piano.giorniSettimana.split(",");
         if (!giorni.includes(giornoStr)) continue;
 
-        const skillRichieste = piano.tipoServizio.skills.map((s) => s.skillId);
+        const skillRichieste = piano.skills.length > 0
+          ? piano.skills.map((s) => s.skillId)
+          : piano.tipoServizio.skills.map((s) => s.skillId);
 
         slots.push({
           utenteId: utente.id,

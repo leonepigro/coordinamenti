@@ -54,6 +54,7 @@ model Skill {
   descrizione String?
   operatori   OperatoreSkill[]
   servizi     ServizioSkill[]
+  piani       PianoSkill[]
 }
 
 model OperatoreSkill {
@@ -109,6 +110,15 @@ model PianoAssistenziale {
   attivo         Boolean      @default(true)
   utente         Utente       @relation(fields: [utenteId], references: [id])
   tipoServizio   TipoServizio @relation(fields: [tipoServizioId], references: [id])
+  skills         PianoSkill[]
+}
+
+model PianoSkill {
+  pianoId Int
+  skillId Int
+  piano   PianoAssistenziale @relation(fields: [pianoId], references: [id], onDelete: Cascade)
+  skill   Skill              @relation(fields: [skillId], references: [id])
+  @@id([pianoId, skillId])
 }
 
 model Equipe {

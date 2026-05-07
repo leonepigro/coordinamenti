@@ -457,10 +457,11 @@ app.post("/api/utenti", async (req, res) => {
           giorniSettimana: p.giorniSettimana,
           oraInizio: p.oraInizio,
           durata: p.durata ? parseInt(p.durata) : null,
+          skills: p.skillIds?.length ? { create: p.skillIds.map((id: number) => ({ skillId: id })) } : undefined,
         })),
       },
     },
-    include: { piani: { include: { tipoServizio: true } }, commessa: true },
+    include: { piani: { include: { tipoServizio: { include: { skills: true } }, skills: { include: { skill: true } } } }, commessa: true },
   });
   res.json(utente);
 });
@@ -486,10 +487,11 @@ app.put("/api/utenti/:id", async (req, res) => {
           giorniSettimana: p.giorniSettimana,
           oraInizio: p.oraInizio,
           durata: p.durata ? parseInt(p.durata) : null,
+          skills: p.skillIds?.length ? { create: p.skillIds.map((id: number) => ({ skillId: id })) } : undefined,
         })),
       },
     },
-    include: { piani: { include: { tipoServizio: true } }, commessa: true },
+    include: { piani: { include: { tipoServizio: { include: { skills: true } }, skills: { include: { skill: true } } } }, commessa: true },
   });
   res.json(utente);
 });
@@ -748,7 +750,7 @@ app.get("/api/piani", async (req, res) => {
 });
 
 app.post("/api/piani", async (req, res) => {
-  const { utenteId, tipoServizioId, giorniSettimana, oraInizio, durata } = req.body;
+  const { utenteId, tipoServizioId, giorniSettimana, oraInizio, durata, skillIds } = req.body;
   const piano = await prisma.pianoAssistenziale.create({
     data: {
       utenteId,
@@ -756,23 +758,27 @@ app.post("/api/piani", async (req, res) => {
       giorniSettimana,
       oraInizio,
       durata: durata ? parseInt(durata) : null,
+      skills: skillIds?.length ? { create: skillIds.map((id: number) => ({ skillId: id })) } : undefined,
     },
-    include: { tipoServizio: true, utente: true },
+    include: { tipoServizio: { include: { skills: true } }, utente: true, skills: { include: { skill: true } } },
   });
   res.json(piano);
 });
 
 app.put("/api/piani/:id", async (req, res) => {
-  const { tipoServizioId, giorniSettimana, oraInizio, durata } = req.body;
+  const { tipoServizioId, giorniSettimana, oraInizio, durata, skillIds } = req.body;
+  const id = parseInt(req.params.id);
+  await prisma.pianoSkill.deleteMany({ where: { pianoId: id } });
   const piano = await prisma.pianoAssistenziale.update({
-    where: { id: parseInt(req.params.id) },
+    where: { id },
     data: {
       tipoServizioId: parseInt(tipoServizioId),
       giorniSettimana,
       oraInizio,
       durata: durata ? parseInt(durata) : null,
+      skills: skillIds?.length ? { create: skillIds.map((sid: number) => ({ skillId: sid })) } : undefined,
     },
-    include: { tipoServizio: true, utente: true },
+    include: { tipoServizio: { include: { skills: true } }, utente: true, skills: { include: { skill: true } } },
   });
   res.json(piano);
 });

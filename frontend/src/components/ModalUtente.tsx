@@ -7,6 +7,7 @@ interface TipoServizio {
   id: number;
   nome: string;
   durata: number;
+  skills: { skill: { id: number; nome: string } }[];
 }
 
 interface Piano {
@@ -14,6 +15,7 @@ interface Piano {
   giorniSettimana: string;
   oraInizio: string;
   durata: number | null;
+  skillIds: number[] | null;
 }
 
 const GIORNI = [
@@ -58,6 +60,7 @@ export default function ModalUtente({
       giorniSettimana: p.giorniSettimana,
       oraInizio: p.oraInizio,
       durata: p.durata ?? null,
+      skillIds: p.skills?.length > 0 ? p.skills.map((s: any) => s.skill?.id ?? s.skillId) : null,
     })) ?? [],
   );
   const [tipi, setTipi] = useState<TipoServizio[]>([]);
@@ -100,8 +103,20 @@ export default function ModalUtente({
         giorniSettimana: "1,2,3,4,5",
         oraInizio: "08:00",
         durata: null,
+        skillIds: null,
       },
     ]);
+  }
+
+  function togglePianoSkill(idx: number, skillId: number, defaultIds: number[]) {
+    setPiani((prev) => prev.map((p, i) => {
+      if (i !== idx) return p;
+      const current = p.skillIds ?? defaultIds;
+      const next = current.includes(skillId)
+        ? current.filter((s) => s !== skillId)
+        : [...current, skillId];
+      return { ...p, skillIds: next };
+    }));
   }
 
   // calcola ore totali settimanali dai piani
@@ -344,7 +359,7 @@ export default function ModalUtente({
                       onChange={(e) => {
                         const nuovoId = parseInt(e.target.value);
                         setPiani((prev) => prev.map((p, i) =>
-                          i === idx ? { ...p, tipoServizioId: nuovoId, durata: null } : p
+                          i === idx ? { ...p, tipoServizioId: nuovoId, durata: null, skillIds: null } : p
                         ));
                       }}
                       style={{ ...inputStyle, width: "auto", flex: 1 }}
@@ -424,10 +439,54 @@ export default function ModalUtente({
                   })}
                 </div>
 
-                <div style={{ fontSize: 11, color: "#aaa" }}>
+                {(() => {
+                  const defaultSkillIds = (tipo?.skills ?? []).map((s) => s.skill.id);
+                  const attiviIds = piano.skillIds ?? defaultSkillIds;
+                  if (tipi.length === 0) return null;
+                  const tutteSkill = tipi.flatMap((t) => t.skills.map((s) => s.skill))
+                    .filter((s, i, arr) => arr.findIndex((x) => x.id === s.id) === i)
+                    .sort((a, b) => a.nome.localeCompare(b.nome));
+                  if (tutteSkill.length === 0) return null;
+                  return (
+                    <div style={{ marginTop: 8 }}>
+                      <div style={{ fontSize: 11, color: "#aaa", marginBottom: 4 }}>Skill richieste</div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+                        {tutteSkill.map((s) => {
+                          const isDefault = defaultSkillIds.includes(s.id);
+                          const isAttiva = attiviIds.includes(s.id);
+                          const isCustom = isAttiva && !isDefault;
+                          const isRimossa = !isAttiva && isDefault;
+                          return (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => togglePianoSkill(idx, s.id, defaultSkillIds)}
+                              style={{
+                                padding: "3px 10px",
+                                borderRadius: 20,
+                                fontSize: 11,
+                                cursor: "pointer",
+                                border: isAttiva
+                                  ? isCustom ? "1.5px solid #c17b4e" : "1.5px solid #1a1a1a"
+                                  : isRimossa ? "1.5px dashed #ccc" : "1px solid #e5e5e3",
+                                background: isAttiva ? (isCustom ? "#c17b4e" : "#1a1a1a") : "#fff",
+                                color: isAttiva ? "#fff" : isRimossa ? "#bbb" : "#555",
+                              }}
+                              title={isDefault ? "Skill default del tipo" : isCustom ? "Aggiunta manualmente" : ""}
+                            >
+                              {s.nome}{isDefault && isAttiva ? " ●" : ""}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div style={{ fontSize: 11, color: "#aaa", marginTop: 6 }}>
                   {nGiorni} {nGiorni === 1 ? "giorno" : "giorni"} · {durataEffettiva}min · {oreServizio}h/sett.
                   {piano.durata && piano.durata !== tipo?.durata && (
-                    <span style={{ color: "#c17b4e", marginLeft: 6 }}>personalizzata</span>
+                    <span style={{ color: "#c17b4e", marginLeft: 6 }}>durata personalizzata</span>
                   )}
                 </div>
               </div>
