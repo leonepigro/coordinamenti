@@ -79,9 +79,6 @@ export async function generaTurni(
           skills: true,
         },
       },
-      equipe: {
-        include: { membri: true },
-      },
       commessa: true,
     },
   });
@@ -164,10 +161,7 @@ export async function generaTurni(
   for (const slot of slots) {
     const dataStr = slot.data.toISOString().slice(0, 10);
 
-    // Trova l'equipe dell'utente per questo slot
     const utente = utenti.find((u) => u.id === slot.utenteId);
-    const equipe = utente?.equipe[0];
-    const idEquipe = equipe?.membri.map((m) => m.operatoreId) ?? [];
 
     // Candidati: commessa + skill compatibili + disponibili + turno capiente
     const candidati = operatori.filter((op) => {
@@ -199,13 +193,8 @@ export async function generaTurni(
       continue;
     }
 
-    // Ordina: prima membri dell'equipe, poi per ore usate (bilanciamento)
-    candidati.sort((a, b) => {
-      const aInEquipe = idEquipe.includes(a.id) ? 0 : 1;
-      const bInEquipe = idEquipe.includes(b.id) ? 0 : 1;
-      if (aInEquipe !== bInEquipe) return aInEquipe - bInEquipe;
-      return (oreSettimana.get(a.id) ?? 0) - (oreSettimana.get(b.id) ?? 0);
-    });
+    // Ordina per bilanciamento ore
+    candidati.sort((a, b) => (oreSettimana.get(a.id) ?? 0) - (oreSettimana.get(b.id) ?? 0));
 
     const scelto = candidati[0];
     const chiave = getChiave(scelto.id, slot.data, slot.turno);
