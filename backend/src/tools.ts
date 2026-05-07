@@ -12,7 +12,7 @@ export const toolDefinitions = [
     function: {
       name: "genera_turni",
       description:
-        "Genera e salva automaticamente i turni per un periodo, assegnando operatori agli utenti rispettando skill, equipe, disponibilità e ore contrattuali.",
+        "Genera e salva automaticamente i turni per un periodo, assegnando operatori agli utenti rispettando skill, operatori preferiti, disponibilità, preferenza turno (part-time) e ore contrattuali. I preferiti girano a rotazione.",
       parameters: {
         type: "object",
         properties: {
@@ -118,7 +118,7 @@ export const toolDefinitions = [
     function: {
       name: "get_equipe",
       description:
-        "Restituisce le equipe configurate con i loro membri e l'utente associato.",
+        "Restituisce le equipe configurate (gruppi di operatori) con nome e membri.",
       parameters: { type: "object", properties: {} },
     },
   },
@@ -251,7 +251,10 @@ export async function eseguiTool(nome: string, args: any): Promise<string> {
           nome: o.nome,
           qualifica: o.qualifica,
           oreSettimanali: o.oreSettimanali,
-          preferenzaTurno: o.preferenzaTurno,
+          preferenzaTurno: o.preferenzaTurno ?? "tutti i turni",
+          sesso: o.sesso,
+          nazionalita: o.nazionalita,
+          mezzoTrasporto: o.mezzoTrasporto,
           telefono: o.telefono,
           skills: o.skills.map((s) => s.skill.nome),
         })),
@@ -264,8 +267,9 @@ export async function eseguiTool(nome: string, args: any): Promise<string> {
         include: {
           piani: {
             where: { attivo: true },
-            include: { tipoServizio: true },
+            include: { tipoServizio: true, skills: { include: { skill: true } } },
           },
+          operatoriPreferiti: { include: { operatore: { select: { id: true, nome: true, qualifica: true } } } },
         },
         orderBy: { nome: "asc" },
       });
@@ -276,11 +280,15 @@ export async function eseguiTool(nome: string, args: any): Promise<string> {
           indirizzo: u.indirizzo,
           oreSettimanali: u.oreSettimanali,
           note: u.note,
+          operatoriPreferiti: u.operatoriPreferiti.map((p) => p.operatore.nome),
           piani: u.piani.map((p) => ({
             servizio: p.tipoServizio.nome,
             giorni: p.giorniSettimana,
             ora: p.oraInizio,
-            durata: p.tipoServizio.durata,
+            durata: p.durata ?? p.tipoServizio.durata,
+            vincoloSesso: p.vincoloSesso,
+            vincoloNazionalita: p.vincoloNazionalita,
+            skillPersonalizzate: p.skills.length > 0 ? p.skills.map((s) => s.skill.nome) : null,
           })),
         })),
       );
@@ -357,16 +365,13 @@ export async function eseguiTool(nome: string, args: any): Promise<string> {
           const skillC = new Set(c.skills.map((s) => s.skillId));
           return [...skillNecessarie].every((s) => skillC.has(s));
         })
+        .filter((c) => !c.preferenzaTurno || c.preferenzaTurno === args.turno)
         .map((c) => ({
           id: c.id,
           nome: c.nome,
           qualifica: c.qualifica,
-          preferenzaTurno: c.preferenzaTurno,
-          corrispondeTurno: c.preferenzaTurno === args.turno,
-        }))
-        .sort(
-          (a, b) => (b.corrispondeTurno ? 1 : 0) - (a.corrispondeTurno ? 1 : 0),
-        );
+          preferenzaTurno: c.preferenzaTurno ?? "tutti i turni",
+        }));
 
       return JSON.stringify({
         assenteNome: assente.nome,
@@ -424,7 +429,7 @@ export async function eseguiTool(nome: string, args: any): Promise<string> {
       if (args.utenteId) where.utenteId = args.utenteId;
       const piani = await prisma.pianoAssistenziale.findMany({
         where,
-        include: { utente: true, tipoServizio: true },
+        include: { utente: true, tipoServizio: true, skills: { include: { skill: true } } },
         orderBy: { id: "asc" },
       });
       return JSON.stringify(
@@ -434,7 +439,10 @@ export async function eseguiTool(nome: string, args: any): Promise<string> {
           servizio: p.tipoServizio.nome,
           giorni: p.giorniSettimana,
           ora: p.oraInizio,
-          durata: p.tipoServizio.durata,
+          durata: p.durata ?? p.tipoServizio.durata,
+          vincoloSesso: p.vincoloSesso,
+          vincoloNazionalita: p.vincoloNazionalita,
+          skillPersonalizzate: p.skills.length > 0 ? p.skills.map((s) => s.skill.nome) : null,
         })),
       );
     }
