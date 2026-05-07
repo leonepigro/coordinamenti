@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { chat, briefing as apiBriefing } from "../api/client";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import ReactMarkdown from "react-markdown";
 
 interface Messaggio {
   ruolo: "user" | "ai";
@@ -256,23 +257,61 @@ export default function ChatAI({
             {/* Bolla */}
             <div
               style={{
-                maxWidth: "68%",
+                maxWidth: "72%",
                 padding: "13px 16px",
                 borderRadius:
                   m.ruolo === "user"
                     ? "16px 4px 16px 16px"
                     : "4px 16px 16px 16px",
                 fontSize: 14,
-                lineHeight: 1.7,
+                lineHeight: 1.75,
                 background:
                   m.ruolo === "user" ? "var(--inchiostro)" : "var(--sabbia)",
                 color:
                   m.ruolo === "user" ? "var(--bianco)" : "var(--inchiostro)",
-                whiteSpace: "pre-wrap",
                 border: m.ruolo === "ai" ? "1px solid var(--bordo)" : "none",
               }}
             >
-              {m.testo}
+              {m.ruolo === "user" ? (
+                <span style={{ whiteSpace: "pre-wrap" }}>{m.testo}</span>
+              ) : (
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => (
+                      <p style={{ margin: "0 0 10px", lineHeight: 1.75 }}>{children}</p>
+                    ),
+                    strong: ({ children }) => (
+                      <strong style={{ fontWeight: 600, color: "var(--inchiostro)" }}>{children}</strong>
+                    ),
+                    ol: ({ children }) => (
+                      <ol style={{ margin: "8px 0 10px", paddingLeft: 20, display: "flex", flexDirection: "column", gap: 8 }}>{children}</ol>
+                    ),
+                    ul: ({ children }) => (
+                      <ul style={{ margin: "8px 0 10px", paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>{children}</ul>
+                    ),
+                    li: ({ children }) => (
+                      <li style={{ lineHeight: 1.7 }}>{children}</li>
+                    ),
+                    h1: ({ children }) => (
+                      <h1 style={{ fontSize: 16, fontWeight: 600, margin: "14px 0 6px", color: "var(--inchiostro)" }}>{children}</h1>
+                    ),
+                    h2: ({ children }) => (
+                      <h2 style={{ fontSize: 15, fontWeight: 600, margin: "12px 0 6px", color: "var(--inchiostro)" }}>{children}</h2>
+                    ),
+                    h3: ({ children }) => (
+                      <h3 style={{ fontSize: 14, fontWeight: 600, margin: "10px 0 4px", color: "var(--inchiostro)" }}>{children}</h3>
+                    ),
+                    code: ({ children }) => (
+                      <code style={{ background: "rgba(0,0,0,0.06)", borderRadius: 4, padding: "1px 5px", fontSize: 12, fontFamily: "monospace" }}>{children}</code>
+                    ),
+                    hr: () => (
+                      <hr style={{ border: "none", borderTop: "1px solid var(--bordo)", margin: "12px 0" }} />
+                    ),
+                  }}
+                >
+                  {m.testo}
+                </ReactMarkdown>
+              )}
             </div>
 
             {/* Timestamp */}
