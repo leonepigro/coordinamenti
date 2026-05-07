@@ -82,13 +82,11 @@ async function geocodificaRoma(indirizzo: string): Promise<GeoResult | null> {
 
 const BUILD_TIME = new Date().toISOString();
 
-const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434/v1";
+const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5:14b";
 const GROQ_MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
-
-const ollama = new OpenAI({ baseURL: OLLAMA_BASE_URL, apiKey: "ollama" });
 const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
   apiKey: process.env.GROQ_API_KEY,
@@ -1757,6 +1755,41 @@ function oaiMessagesToAnthropic(messages: any[]): Anthropic.MessageParam[] {
   return result;
 }
 
+async function chatWithOllamaNative(params: { messages: any[]; tools: any[] }) {
+  const url = `${OLLAMA_BASE_URL}/api/chat`;
+  const body = { model: OLLAMA_MODEL, messages: params.messages, tools: params.tools, stream: false };
+  const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!resp.ok) {
+    const text = await resp.text().catch(() => "");
+    throw Object.assign(new Error(`Ollama ${resp.status}: ${text}`), { status: resp.status });
+  }
+  const data = await resp.json() as any;
+  const msg = data.message ?? {};
+  const rawToolCalls: any[] = msg.tool_calls ?? [];
+  const toolCalls = rawToolCalls.map((tc: any, i: number) => ({
+    id: `tc_${Date.now()}_${i}`,
+    type: "function",
+    function: {
+      name: tc.function.name,
+      arguments: typeof tc.function.arguments === "string"
+        ? tc.function.arguments
+        : JSON.stringify(tc.function.arguments ?? {}),
+    },
+  }));
+  return {
+    res: {
+      choices: [{
+        message: {
+          content: msg.content ?? null,
+          tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+        },
+        finish_reason: data.done_reason ?? "stop",
+      }],
+    },
+    provider: "ollama",
+  };
+}
+
 async function chatWithClaude(params: { messages: any[]; tools: any[] }) {
   const systemMsg = params.messages.find((m) => m.role === "system");
   const system = systemMsg?.content ?? "";
@@ -1815,48 +1848,44 @@ function categorizzaErroreAI(provider: string, err: any): string {
 async function chatWithFallback(params: any) {
   const falliti: string[] = [];
 
-  // Claude (se ANTHROPIC_API_KEY configurato)
-  if (anthropic) {
-    try {
-      console.log("🟣 Provo Claude");
-      const result = await chatWithClaude(params);
-      console.log(`✅ Risposta da Claude (${ANTHROPIC_MODEL})`);
-      return result;
-    } catch (err: any) {
-      const desc = categorizzaErroreAI("Claude", err);
-      console.warn("🔴", desc);
-      falliti.push(desc);
-    }
-  }
+  // // Claude (se ANTHROPIC_API_KEY configurato)
+  // if (anthropic) {
+  //   try {
+  //     console.log("🟣 Provo Claude");
+  //     const result = await chatWithClaude(params);
+  //     console.log(`✅ Risposta da Claude (${ANTHROPIC_MODEL})`);
+  //     return result;
+  //   } catch (err: any) {
+  //     const desc = categorizzaErroreAI("Claude", err);
+  //     console.warn("🔴", desc);
+  //     falliti.push(desc);
+  //   }
+  // }
 
-  // Gemini (se GEMINI_API_KEY configurato)
-  if (gemini) {
-    try {
-      console.log("🔵 Provo Gemini");
-      const res = await gemini.chat.completions.create({
-        ...params,
-        model: GEMINI_MODEL,
-        temperature: 0,
-      });
-      console.log(`✅ Risposta da Gemini (${GEMINI_MODEL})`);
-      return { res, provider: "gemini" };
-    } catch (err: any) {
-      const desc = categorizzaErroreAI("Gemini", err);
-      console.warn("🔴", desc);
-      falliti.push(desc);
-    }
-  }
+  // // Gemini (se GEMINI_API_KEY configurato)
+  // if (gemini) {
+  //   try {
+  //     console.log("🔵 Provo Gemini");
+  //     const res = await gemini.chat.completions.create({
+  //       ...params,
+  //       model: GEMINI_MODEL,
+  //       temperature: 0,
+  //     });
+  //     console.log(`✅ Risposta da Gemini (${GEMINI_MODEL})`);
+  //     return { res, provider: "gemini" };
+  //   } catch (err: any) {
+  //     const desc = categorizzaErroreAI("Gemini", err);
+  //     console.warn("🔴", desc);
+  //     falliti.push(desc);
+  //   }
+  // }
 
-  // Ollama (locale)
+  // Ollama (locale / Railway) — usa API nativa /api/chat
   try {
     console.log("🟢 Provo Ollama");
-    const res = await ollama.chat.completions.create({
-      ...params,
-      model: OLLAMA_MODEL,
-      temperature: 0,
-    });
+    const result = await chatWithOllamaNative(params);
     console.log("✅ Risposta da Ollama");
-    return { res, provider: "ollama" };
+    return result;
   } catch (err: any) {
     const desc = categorizzaErroreAI("Ollama", err);
     console.warn("🔴", desc);
