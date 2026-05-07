@@ -25,7 +25,11 @@ interface OperatoreForm {
   lon?: number;
 }
 
-const TURNI = ["mattina", "pomeriggio"];
+const TURNI = [
+  { value: "", label: "Tutti i turni" },
+  { value: "mattina", label: "Solo mattina (part-time)" },
+  { value: "pomeriggio", label: "Solo pomeriggio (part-time)" },
+];
 const MEZZI = [
   { value: "driving", label: "Auto privata" },
   { value: "cycling", label: "Bicicletta" },
@@ -45,7 +49,7 @@ export default function ModalOperatore({
     nome: operatore?.nome ?? "",
     qualifica: operatore?.qualifica ?? "",
     oreSettimanali: operatore?.oreSettimanali ?? 36,
-    preferenzaTurno: operatore?.preferenzaTurno ?? "mattina",
+    preferenzaTurno: operatore?.preferenzaTurno ?? "",
     telefono: operatore?.telefono ?? "",
     email: operatore?.email ?? "",
     skillIds: operatore?.skills?.map((s: any) => s.skillId) ?? [],
@@ -228,7 +232,7 @@ export default function ModalOperatore({
               style={inputStyle}
             >
               {TURNI.map((t) => (
-                <option key={t}>{t}</option>
+                <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
           </div>

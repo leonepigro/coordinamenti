@@ -155,6 +155,8 @@ export async function generaTurni(
 
   // Traccia minuti usati per operatore/giorno/turno
   const minutiUsati = new Map<string, number>();
+  // Traccia quante volte ogni operatore è stato assegnato a ciascun utente (per rotazione)
+  const contaPerUtente = new Map<string, number>();
 
   const assegnate: AssegnazioneIntervento[] = [];
   const scoperti: SlotIntervento[] = [];
@@ -164,13 +166,16 @@ export async function generaTurni(
 
     const utente = utenti.find((u) => u.id === slot.utenteId);
 
-    // Pool completo: commessa + skill + disponibili + turno capiente
+    // Pool completo: commessa + skill + disponibili + turno capiente + preferenza turno
     const tuttiCandidati = operatori.filter((op) => {
       if (setIndisponibili.has(`${op.id}-${dataStr}`)) return false;
 
       if (utente?.commessaId && op.commesse.length > 0) {
         if (!op.commesse.some((c) => c.commessaId === utente.commessaId)) return false;
       }
+
+      // Vincolo turno part-time: esclude se operatore ha preferenza diversa dallo slot
+      if (op.preferenzaTurno && op.preferenzaTurno !== slot.turno) return false;
 
       if (slot.vincoloSesso && op.sesso !== slot.vincoloSesso) return false;
       if (slot.vincoloNazionalita && op.nazionalita !== slot.vincoloNazionalita) return false;
@@ -192,7 +197,8 @@ export async function generaTurni(
     const candidatiPreferiti = preferiti.size > 0
       ? tuttiCandidati.filter((op) => preferiti.has(op.id))
       : [];
-    const candidati = candidatiPreferiti.length > 0 ? candidatiPreferiti : tuttiCandidati;
+    const usaPreferiti = candidatiPreferiti.length > 0;
+    const candidati = usaPreferiti ? candidatiPreferiti : tuttiCandidati;
 
     if (candidati.length === 0) {
       // Slot non coperto — salvato in DB con operatoreId null per gestione manuale
@@ -200,16 +206,27 @@ export async function generaTurni(
       continue;
     }
 
-    // Ordina per bilanciamento ore
-    candidati.sort((a, b) => (oreSettimana.get(a.id) ?? 0) - (oreSettimana.get(b.id) ?? 0));
+    if (usaPreferiti) {
+      // Rotazione tra preferiti: chi ha lavorato meno per QUESTO utente va prima
+      candidati.sort((a, b) => {
+        const countA = contaPerUtente.get(`${slot.utenteId}-${a.id}`) ?? 0;
+        const countB = contaPerUtente.get(`${slot.utenteId}-${b.id}`) ?? 0;
+        if (countA !== countB) return countA - countB;
+        return (oreSettimana.get(a.id) ?? 0) - (oreSettimana.get(b.id) ?? 0);
+      });
+    } else {
+      // Fallback pool: bilanciamento ore globale
+      candidati.sort((a, b) => (oreSettimana.get(a.id) ?? 0) - (oreSettimana.get(b.id) ?? 0));
+    }
 
     const scelto = candidati[0];
     const chiave = getChiave(scelto.id, slot.data, slot.turno);
 
     minutiUsati.set(chiave, (minutiUsati.get(chiave) ?? 0) + slot.durata);
-    oreSettimana.set(
-      scelto.id,
-      (oreSettimana.get(scelto.id) ?? 0) + slot.durata / 60,
+    oreSettimana.set(scelto.id, (oreSettimana.get(scelto.id) ?? 0) + slot.durata / 60);
+    contaPerUtente.set(
+      `${slot.utenteId}-${scelto.id}`,
+      (contaPerUtente.get(`${slot.utenteId}-${scelto.id}`) ?? 0) + 1,
     );
 
     assegnate.push({
