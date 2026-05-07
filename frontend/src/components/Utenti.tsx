@@ -79,7 +79,7 @@ export default function Utenti() {
     setModalUtente(true);
   }
   function apriEquipe(u: any) {
-    setEquipeSelezionata({ utenteId: u.id, utente: u });
+    setEquipeSelezionata(u);
     setModalEquipe(true);
   }
 
@@ -369,7 +369,7 @@ export default function Utenti() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <button onClick={() => apriEquipe(u)} style={btnSmallStyle}>
-                    Equipe
+                    Operatori
                   </button>
                   <button onClick={() => apriModifica(u)} style={btnSmallStyle}>
                     Modifica
@@ -492,58 +492,30 @@ export default function Utenti() {
                     </div>
                   )}
 
-                  {/* Equipe */}
-                  {u.equipe.length > 0 && (
+                  {/* Operatori associati */}
+                  {u.equipe.length > 0 && u.equipe[0].membri.length > 0 && (
                     <div style={{ marginTop: 14 }}>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 500,
-                          color: "var(--grigio)",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                          marginBottom: 8,
-                        }}
-                      >
-                        Equipe assegnata
+                      <div style={{ fontSize: 11, fontWeight: 500, color: "var(--grigio)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                        Operatori associati
                       </div>
-                      {u.equipe.map((eq) => (
-                        <div
-                          key={eq.id}
-                          style={{ display: "flex", flexWrap: "wrap", gap: 6 }}
-                        >
-                          {eq.membri.map((m) => (
-                            <div
-                              key={m.operatoreId}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 6,
-                                padding: "4px 10px",
-                                borderRadius: 8,
-                                background: "var(--sabbia)",
-                                border: "1px solid var(--bordo)",
-                                fontSize: 12,
-                              }}
-                            >
-                              <span
-                                style={{
-                                  fontWeight: 500,
-                                  color: "var(--inchiostro)",
-                                }}
-                              >
-                                {m.operatore.nome.split(" ")[1] ??
-                                  m.operatore.nome}
-                              </span>
-                              {m.ruolo && (
-                                <span style={{ color: "var(--grigio)" }}>
-                                  · {m.ruolo}
-                                </span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      ))}
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {u.equipe[0].membri.map((m) => (
+                          <span
+                            key={m.operatoreId}
+                            style={{
+                              padding: "4px 10px",
+                              borderRadius: 8,
+                              background: "var(--sabbia)",
+                              border: "1px solid var(--bordo)",
+                              fontSize: 12,
+                              fontWeight: 500,
+                              color: "var(--inchiostro)",
+                            }}
+                          >
+                            {m.operatore.nome}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -589,9 +561,10 @@ export default function Utenti() {
           onSalvato={carica}
         />
       )}
-      {modalEquipe && (
+      {modalEquipe && equipeSelezionata && (
         <ModalEquipe
-          equipe={equipeSelezionata}
+          utenteId={equipeSelezionata.id}
+          equipeEsistente={equipeSelezionata.equipe?.[0] ?? null}
           onClose={() => setModalEquipe(false)}
           onSalvato={carica}
         />
