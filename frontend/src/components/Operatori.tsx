@@ -37,7 +37,7 @@ const MEZZO_LABEL: Record<string, string> = {
   foot: "🚶 Piedi",
 };
 
-const PER_PAGINA = 25;
+const PER_PAGINA = 15;
 
 export default function Operatori() {
   const [lista, setLista] = useState<Operatore[]>([]);
