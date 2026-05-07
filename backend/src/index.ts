@@ -1145,7 +1145,7 @@ const KEYWORDS_ATTIVITA = ["attività", "gap", "ore da coprire", "suggerisci", "
 function buildSystemPrompt(nome: string, ruolo: string, messaggio?: string): string {
   const oggi = new Date().toLocaleDateString("it-IT");
   const isCoord = ruolo === "admin" || ruolo === "coordinatore";
-  const ruoloDesc = isCoord ? "coordinatore del gruppo Coordina*menti*" : "operatore del gruppo Coordina*menti*";
+  const ruoloDesc = isCoord ? "coordinatore del gruppo Coordina**menti**" : "operatore del gruppo Coordina**menti**";
   const includeCatalogo = messaggio
     ? KEYWORDS_ATTIVITA.some((k) => messaggio.toLowerCase().includes(k))
     : false;
@@ -1153,7 +1153,7 @@ function buildSystemPrompt(nome: string, ruolo: string, messaggio?: string): str
   return `Sei l'assistente di ${nome}, ${ruoloDesc}.
 Oggi è ${oggi}.
 Rivolgiti sempre a ${nome} direttamente, usando il suo nome quando appropriato.
-Il gruppo si chiama Coordina*menti* — usalo quando ti riferisci all'organizzazione.
+Il gruppo si chiama Coordina**menti** — usalo quando ti riferisci all'organizzazione.
 
 Hai accesso a un database completo con questi dati:
 - Operatori: qualifica, skill, ore contrattuali, mezzo di trasporto, preferenza turno
