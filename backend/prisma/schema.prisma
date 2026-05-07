@@ -97,7 +97,6 @@ model Utente {
   attivo           Boolean              @default(true)
   createdAt        DateTime             @default(now())
   piani            PianoAssistenziale[]
-  equipe           Equipe[]
   interventi       Intervento[]
   commessaId       Int?
   commessa         Commessa?            @relation(fields: [commessaId], references: [id])
@@ -137,9 +136,7 @@ model PianoSkill {
 
 model Equipe {
   id       Int            @id @default(autoincrement())
-  utenteId Int
-  nome     String?
-  utente   Utente         @relation(fields: [utenteId], references: [id])
+  nome     String
   membri   EquipeMembro[]
 }
 

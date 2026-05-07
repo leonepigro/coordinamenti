@@ -10,8 +10,7 @@ interface Membro {
 
 interface Equipe {
   id: number;
-  nome: string | null;
-  utente: { id: number; nome: string; indirizzo: string };
+  nome: string;
   membri: Membro[];
 }
 
@@ -52,8 +51,7 @@ export default function Equipe() {
   }
 
   const listaFiltrata = lista.filter(e =>
-    (e.nome ?? "").toLowerCase().includes(filtro.toLowerCase()) ||
-    e.utente.nome.toLowerCase().includes(filtro.toLowerCase())
+    e.nome.toLowerCase().includes(filtro.toLowerCase())
   );
 
   if (loading) return (
@@ -65,14 +63,14 @@ export default function Equipe() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 500, color: "var(--inchiostro)", margin: 0 }}>Equipe</h1>
-          <p style={{ fontSize: 13, color: "var(--grigio)", margin: "4px 0 0" }}>{lista.length} equipe attive</p>
+          <p style={{ fontSize: 13, color: "var(--grigio)", margin: "4px 0 0" }}>{lista.length} equipe</p>
         </div>
         <button onClick={apriNuova} style={btnPrimarioStyle}>+ Nuova equipe</button>
       </div>
 
       <div style={{ marginBottom: 20 }}>
         <input value={filtro} onChange={e => setFiltro(e.target.value)}
-          placeholder="Cerca per utente o nome equipe..."
+          placeholder="Cerca per nome equipe..."
           style={searchStyle}
           onFocus={e => e.target.style.borderColor = "var(--terra)"}
           onBlur={e => e.target.style.borderColor = "var(--bordo)"} />
@@ -84,7 +82,7 @@ export default function Equipe() {
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 14 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
         {listaFiltrata.map(eq => (
           <div key={eq.id} style={{
             border: "1px solid var(--bordo)", borderRadius: 14,
@@ -98,13 +96,10 @@ export default function Equipe() {
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>
               <div>
                 <div style={{ fontWeight: 500, fontSize: 15, color: "var(--inchiostro)" }}>
-                  {eq.nome ?? `Equipe ${eq.utente.nome.split(" ").slice(-1)[0]}`}
+                  {eq.nome}
                 </div>
-                <div style={{ fontSize: 12, color: "var(--terra)", marginTop: 3, fontWeight: 500 }}>
-                  {eq.utente.nome}
-                </div>
-                <div style={{ fontSize: 11, color: "var(--grigio)", marginTop: 2 }}>
-                  📍 {eq.utente.indirizzo}
+                <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 3 }}>
+                  {eq.membri.length} membro{eq.membri.length !== 1 ? "i" : ""}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
@@ -113,11 +108,13 @@ export default function Equipe() {
               </div>
             </div>
 
-            {/* Separatore */}
             <div style={{ height: 1, background: "var(--bordo)", marginBottom: 14 }} />
 
             {/* Membri */}
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {eq.membri.length === 0 && (
+                <div style={{ fontSize: 13, color: "var(--grigio)", padding: "8px 0" }}>Nessun membro</div>
+              )}
               {eq.membri.map(m => {
                 const ruoloStyle = RUOLO_STYLE[m.ruolo ?? ""] ?? { bg: "var(--sabbia)", color: "var(--grigio)" };
                 const iniziali = QUALIFICA_INITIALS[m.operatore.qualifica] ?? m.operatore.qualifica.slice(0, 2).toUpperCase();

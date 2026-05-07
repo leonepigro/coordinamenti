@@ -203,13 +203,6 @@ app.get("/api/utenti", async (req, res) => {
         where: { attivo: true },
         include: { tipoServizio: true },
       },
-      equipe: {
-        include: {
-          membri: {
-            include: { operatore: true },
-          },
-        },
-      },
       operatoriPreferiti: {
         include: { operatore: { select: { id: true, nome: true, qualifica: true } } },
         orderBy: { operatore: { nome: "asc" } },
@@ -535,19 +528,16 @@ app.put("/api/utenti/:id/operatori-preferiti", async (req, res) => {
 // --- EQUIPE ---
 app.get("/api/equipe", async (req, res) => {
   const equipe = await prisma.equipe.findMany({
-    include: {
-      utente: true,
-      membri: { include: { operatore: true } },
-    },
+    include: { membri: { include: { operatore: true } } },
+    orderBy: { nome: "asc" },
   });
   res.json(equipe);
 });
 
 app.post("/api/equipe", async (req, res) => {
-  const { utenteId, nome, membri } = req.body;
+  const { nome, membri } = req.body;
   const equipe = await prisma.equipe.create({
     data: {
-      utenteId,
       nome,
       membri: {
         create: membri.map((m: any) => ({
@@ -556,7 +546,7 @@ app.post("/api/equipe", async (req, res) => {
         })),
       },
     },
-    include: { membri: { include: { operatore: true } }, utente: true },
+    include: { membri: { include: { operatore: true } } },
   });
   res.json(equipe);
 });
@@ -576,7 +566,7 @@ app.put("/api/equipe/:id", async (req, res) => {
         })),
       },
     },
-    include: { membri: { include: { operatore: true } }, utente: true },
+    include: { membri: { include: { operatore: true } } },
   });
   res.json(equipe);
 });
