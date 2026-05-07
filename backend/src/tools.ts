@@ -216,7 +216,7 @@ export const toolDefinitions = [
   },
 ];
 
-export async function eseguiTool(nome: string, args: any): Promise<string> {
+export async function eseguiTool(nome: string, args: Record<string, any> = {}): Promise<string> {
   switch (nome) {
     case "genera_turni": {
       const { assegnate, scoperti } = await generaTurni(

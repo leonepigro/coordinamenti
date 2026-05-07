@@ -1177,9 +1177,9 @@ app.post("/api/chat/stream", async (req, res) => {
 
       for (const toolCall of choice.message.tool_calls) {
         const tc = toolCall as any;
-        let args = {};
+        let args: Record<string, any> = {};
         try {
-          args = JSON.parse(tc.function.arguments);
+          args = JSON.parse(tc.function.arguments || "{}") ?? {};
         } catch {
           continue;
         }
@@ -1747,9 +1747,9 @@ app.post("/api/chat", async (req, res) => {
 
       for (const toolCall of choice.message.tool_calls) {
         const tc = toolCall as any; // cast per compatibilità typing Ollama
-        let args = {};
+        let args: Record<string, any> = {};
         try {
-          args = JSON.parse(tc.function.arguments);
+          args = JSON.parse(tc.function.arguments || "{}") ?? {};
         } catch (e) {
           console.error("JSON rotto:", tc.function.arguments);
           continue;
