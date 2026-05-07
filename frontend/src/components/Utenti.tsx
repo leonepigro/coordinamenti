@@ -1,25 +1,12 @@
 import { useState, useEffect } from "react";
 import { utenti as apiUtenti } from "../api/client";
 import ModalUtente from "./ModalUtente";
-import ModalEquipe from "./ModalEquipe";
 import ImportExcel from "./ImportExcel";
 
 interface Piano {
   tipoServizio: { nome: string; durata: number };
   giorniSettimana: string;
   oraInizio: string;
-}
-
-interface Membro {
-  operatoreId: number;
-  ruolo: string | null;
-  operatore: { nome: string; qualifica: string };
-}
-
-interface EquipeUtente {
-  id: number;
-  nome: string | null;
-  membri: Membro[];
 }
 
 interface Utente {
@@ -32,7 +19,6 @@ interface Utente {
   lon: number | null;
   commessa: { id: number; nome: string } | null;
   piani: Piano[];
-  equipe: EquipeUtente[];
 }
 
 const PER_PAGINA = 25;
@@ -51,9 +37,7 @@ export default function Utenti() {
   const [lista, setLista] = useState<Utente[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalUtente, setModalUtente] = useState(false);
-  const [modalEquipe, setModalEquipe] = useState(false);
   const [selezionato, setSelezionato] = useState<any>(null);
-  const [equipeSelezionata, setEquipeSelezionata] = useState<any>(null);
   const [filtro, setFiltro] = useState("");
   const [filtroCommessa, setFiltroCommessa] = useState("");
   const [pagina, setPagina] = useState(1);
@@ -77,10 +61,6 @@ export default function Utenti() {
   function apriModifica(u: any) {
     setSelezionato(u);
     setModalUtente(true);
-  }
-  function apriEquipe(u: any) {
-    setEquipeSelezionata(u);
-    setModalEquipe(true);
   }
 
   async function elimina(id: number) {
@@ -368,9 +348,6 @@ export default function Utenti() {
                   style={{ display: "flex", gap: 6, marginLeft: 14 }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <button onClick={() => apriEquipe(u)} style={btnSmallStyle}>
-                    Operatori
-                  </button>
                   <button onClick={() => apriModifica(u)} style={btnSmallStyle}>
                     Modifica
                   </button>
@@ -492,32 +469,6 @@ export default function Utenti() {
                     </div>
                   )}
 
-                  {/* Operatori associati */}
-                  {u.equipe.length > 0 && u.equipe[0].membri.length > 0 && (
-                    <div style={{ marginTop: 14 }}>
-                      <div style={{ fontSize: 11, fontWeight: 500, color: "var(--grigio)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                        Operatori associati
-                      </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                        {u.equipe[0].membri.map((m) => (
-                          <span
-                            key={m.operatoreId}
-                            style={{
-                              padding: "4px 10px",
-                              borderRadius: 8,
-                              background: "var(--sabbia)",
-                              border: "1px solid var(--bordo)",
-                              fontSize: 12,
-                              fontWeight: 500,
-                              color: "var(--inchiostro)",
-                            }}
-                          >
-                            {m.operatore.nome}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -558,14 +509,6 @@ export default function Utenti() {
         <ModalUtente
           utente={selezionato}
           onClose={() => setModalUtente(false)}
-          onSalvato={carica}
-        />
-      )}
-      {modalEquipe && equipeSelezionata && (
-        <ModalEquipe
-          utenteId={equipeSelezionata.id}
-          equipeEsistente={equipeSelezionata.equipe?.[0] ?? null}
-          onClose={() => setModalEquipe(false)}
           onSalvato={carica}
         />
       )}
