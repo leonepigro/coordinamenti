@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { utenti as apiUtenti } from "../api/client";
 import ModalUtente from "./ModalUtente";
+import ModalOperatoriPreferiti from "./ModalOperatoriPreferiti";
 import ImportExcel from "./ImportExcel";
 
 interface Piano {
@@ -19,6 +20,7 @@ interface Utente {
   lon: number | null;
   commessa: { id: number; nome: string } | null;
   piani: Piano[];
+  operatoriPreferiti: { operatoreId: number; operatore: { id: number; nome: string; qualifica: string } }[];
 }
 
 const PER_PAGINA = 25;
@@ -37,7 +39,9 @@ export default function Utenti() {
   const [lista, setLista] = useState<Utente[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalUtente, setModalUtente] = useState(false);
+  const [modalPreferiti, setModalPreferiti] = useState(false);
   const [selezionato, setSelezionato] = useState<any>(null);
+  const [utentePreferiti, setUtentePreferiti] = useState<Utente | null>(null);
   const [filtro, setFiltro] = useState("");
   const [filtroCommessa, setFiltroCommessa] = useState("");
   const [pagina, setPagina] = useState(1);
@@ -61,6 +65,11 @@ export default function Utenti() {
   function apriModifica(u: any) {
     setSelezionato(u);
     setModalUtente(true);
+  }
+
+  function apriPreferiti(u: Utente) {
+    setUtentePreferiti(u);
+    setModalPreferiti(true);
   }
 
   async function elimina(id: number) {
@@ -348,6 +357,17 @@ export default function Utenti() {
                   style={{ display: "flex", gap: 6, marginLeft: 14 }}
                   onClick={(e) => e.stopPropagation()}
                 >
+                  <button
+                    onClick={() => apriPreferiti(u)}
+                    style={{
+                      ...btnSmallStyle,
+                      color: u.operatoriPreferiti.length > 0 ? "var(--terra-dark)" : undefined,
+                      borderColor: u.operatoriPreferiti.length > 0 ? "var(--terra)" : undefined,
+                    }}
+                    title="Operatori preferiti"
+                  >
+                    Operatori {u.operatoriPreferiti.length > 0 ? `(${u.operatoriPreferiti.length})` : ""}
+                  </button>
                   <button onClick={() => apriModifica(u)} style={btnSmallStyle}>
                     Modifica
                   </button>
@@ -469,6 +489,31 @@ export default function Utenti() {
                     </div>
                   )}
 
+                  {/* Operatori preferiti */}
+                  {u.operatoriPreferiti.length > 0 && (
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ fontSize: 11, fontWeight: 500, color: "var(--grigio)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
+                        Operatori preferiti
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                        {u.operatoriPreferiti.map((p) => (
+                          <span key={p.operatoreId} style={{
+                            padding: "4px 10px",
+                            borderRadius: 8,
+                            background: "var(--terra-light)",
+                            border: "1px solid var(--terra)33",
+                            fontSize: 12,
+                            fontWeight: 500,
+                            color: "var(--terra-dark)",
+                          }}>
+                            {p.operatore.nome}
+                            <span style={{ fontSize: 11, opacity: 0.7, marginLeft: 5 }}>{p.operatore.qualifica}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                 </div>
               )}
             </div>
@@ -509,6 +554,15 @@ export default function Utenti() {
         <ModalUtente
           utente={selezionato}
           onClose={() => setModalUtente(false)}
+          onSalvato={carica}
+        />
+      )}
+      {modalPreferiti && utentePreferiti && (
+        <ModalOperatoriPreferiti
+          utenteId={utentePreferiti.id}
+          utente={utentePreferiti.nome}
+          preferiti={utentePreferiti.operatoriPreferiti.map((p) => p.operatoreId)}
+          onClose={() => setModalPreferiti(false)}
           onSalvato={carica}
         />
       )}

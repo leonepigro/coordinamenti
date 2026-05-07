@@ -56,6 +56,8 @@ export const utenti = {
   crea: (data: any) => api.post("/utenti", data),
   aggiorna: (id: number, data: any) => api.put(`/utenti/${id}`, data),
   elimina: (id: number) => api.delete(`/utenti/${id}`),
+  setOperatoriPreferiti: (id: number, operatoreIds: number[]) =>
+    api.put(`/utenti/${id}/operatori-preferiti`, { operatoreIds }),
 };
 
 export const equipe = {

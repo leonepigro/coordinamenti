@@ -210,6 +210,10 @@ app.get("/api/utenti", async (req, res) => {
           },
         },
       },
+      operatoriPreferiti: {
+        include: { operatore: { select: { id: true, nome: true, qualifica: true } } },
+        orderBy: { operatore: { nome: "asc" } },
+      },
     },
     orderBy: { nome: "asc" },
   });
@@ -513,6 +517,18 @@ app.delete("/api/utenti/:id", async (req, res) => {
     where: { id: parseInt(req.params.id) },
     data: { attivo: false },
   });
+  res.json({ ok: true });
+});
+
+app.put("/api/utenti/:id/operatori-preferiti", async (req, res) => {
+  const utenteId = parseInt(req.params.id);
+  const { operatoreIds }: { operatoreIds: number[] } = req.body;
+  await prisma.operatorePreferito.deleteMany({ where: { utenteId } });
+  if (operatoreIds.length > 0) {
+    await prisma.operatorePreferito.createMany({
+      data: operatoreIds.map((operatoreId) => ({ utenteId, operatoreId })),
+    });
+  }
   res.json({ ok: true });
 });
 

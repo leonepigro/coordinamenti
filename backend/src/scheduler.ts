@@ -80,6 +80,7 @@ export async function generaTurni(
         },
       },
       commessa: true,
+      operatoriPreferiti: { select: { operatoreId: true } },
     },
   });
 
@@ -163,11 +164,10 @@ export async function generaTurni(
 
     const utente = utenti.find((u) => u.id === slot.utenteId);
 
-    // Candidati: commessa + skill compatibili + disponibili + turno capiente
-    const candidati = operatori.filter((op) => {
+    // Pool completo: commessa + skill + disponibili + turno capiente
+    const tuttiCandidati = operatori.filter((op) => {
       if (setIndisponibili.has(`${op.id}-${dataStr}`)) return false;
 
-      // Filtro commessa: se utente ha commessa e operatore ha commesse, devono coincidere
       if (utente?.commessaId && op.commesse.length > 0) {
         if (!op.commesse.some((c) => c.commessaId === utente.commessaId)) return false;
       }
@@ -186,6 +186,13 @@ export async function generaTurni(
 
       return true;
     });
+
+    // Preferenza: usa operatori preferiti dell'utente se almeno uno disponibile
+    const preferiti = new Set(utente?.operatoriPreferiti?.map((p) => p.operatoreId) ?? []);
+    const candidatiPreferiti = preferiti.size > 0
+      ? tuttiCandidati.filter((op) => preferiti.has(op.id))
+      : [];
+    const candidati = candidatiPreferiti.length > 0 ? candidatiPreferiti : tuttiCandidati;
 
     if (candidati.length === 0) {
       // Slot non coperto — salvato in DB con operatoreId null per gestione manuale

@@ -28,6 +28,7 @@ model Operatore {
   nazionalita     String?                  // IT | non-IT
   email           String?
   utenteApp       UtenteApp?
+  utentiPreferiti OperatorePreferito[]
 }
 
 model Commessa {
@@ -99,7 +100,16 @@ model Utente {
   equipe           Equipe[]
   interventi       Intervento[]
   commessaId       Int?
-  commessa         Commessa? @relation(fields: [commessaId], references: [id])
+  commessa         Commessa?            @relation(fields: [commessaId], references: [id])
+  operatoriPreferiti OperatorePreferito[]
+}
+
+model OperatorePreferito {
+  utenteId    Int
+  operatoreId Int
+  utente      Utente    @relation(fields: [utenteId], references: [id], onDelete: Cascade)
+  operatore   Operatore @relation(fields: [operatoreId], references: [id], onDelete: Cascade)
+  @@id([utenteId, operatoreId])
 }
 
 model PianoAssistenziale {
