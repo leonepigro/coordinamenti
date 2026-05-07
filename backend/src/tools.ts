@@ -81,13 +81,13 @@ export const toolDefinitions = [
     function: {
       name: "trova_sostituto",
       description:
-        "Trova i migliori sostituti per un operatore assente in una data e turno, rispettando le skill richieste.",
+        "Trova i migliori sostituti per un operatore assente in una data e turno. IMPORTANTE: chiama prima get_operatori per ottenere l'ID numerico dell'operatore (campo 'id'). Il turno deve essere esattamente 'mattina' o 'pomeriggio'.",
       parameters: {
         type: "object",
         properties: {
           operatoreAssenteId: {
             type: "number",
-            description: "ID operatore assente",
+            description: "ID numerico dell'operatore assente (ottenuto da get_operatori)",
           },
           data: { type: "string", description: "Data YYYY-MM-DD" },
           turno: { type: "string", enum: ["mattina", "pomeriggio"] },

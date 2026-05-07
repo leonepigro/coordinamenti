@@ -1691,13 +1691,25 @@ app.post("/api/chat", async (req, res) => {
     // Loop: il modello può chiamare più tool in sequenza
 
     while (maxSteps-- > 0) {
-      let { res: completion, provider } = await chatWithFallback({
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...currentMessages,
-        ],
-        tools: toolDefinitions,
-      });
+      let completion: any, provider: string;
+      try {
+        ({ res: completion, provider } = await chatWithFallback({
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...currentMessages,
+          ],
+          tools: toolDefinitions,
+        }));
+      } catch (toolErr: any) {
+        if (toolErr?.code === "tool_use_failed") {
+          currentMessages.push({
+            role: "user" as const,
+            content: `Il tuo tool call aveva parametri non validi: ${toolErr?.error?.message ?? "schema non rispettato"}. Usa get_operatori per ottenere gli ID numerici degli operatori, e assicurati che 'turno' sia esattamente "mattina" o "pomeriggio".`,
+          });
+          continue;
+        }
+        throw toolErr;
+      }
 
       console.log("👉 Provider usato:", provider);
 
