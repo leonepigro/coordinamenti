@@ -86,12 +86,19 @@ const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434/v
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5:14b";
 const GROQ_MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
+const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
 
 const ollama = new OpenAI({ baseURL: OLLAMA_BASE_URL, apiKey: "ollama" });
 const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
   apiKey: process.env.GROQ_API_KEY,
 });
+const gemini = process.env.GEMINI_API_KEY
+  ? new OpenAI({
+      baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/",
+      apiKey: process.env.GEMINI_API_KEY,
+    })
+  : null;
 const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
@@ -1794,6 +1801,22 @@ async function chatWithFallback(params: any) {
       return result;
     } catch (err: any) {
       console.warn("🔴 Claude fallito →", err?.message ?? err);
+    }
+  }
+
+  // Gemini (se GEMINI_API_KEY configurato)
+  if (gemini) {
+    try {
+      console.log("🔵 Provo Gemini");
+      const res = await gemini.chat.completions.create({
+        ...params,
+        model: GEMINI_MODEL,
+        temperature: 0,
+      });
+      console.log(`✅ Risposta da Gemini (${GEMINI_MODEL})`);
+      return { res, provider: "gemini" };
+    } catch (err: any) {
+      console.warn("🔴 Gemini fallito →", err?.message ?? err);
     }
   }
 
