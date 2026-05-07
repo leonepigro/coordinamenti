@@ -1088,6 +1088,12 @@ app.get("/api/gap-ore", async (_req, res) => {
   res.json({ utenti: risultati });
 });
 
+const MAX_TOOL_RESULT_CHARS = 3000;
+function troncaRisultato(s: string): string {
+  if (s.length <= MAX_TOOL_RESULT_CHARS) return s;
+  return s.slice(0, MAX_TOOL_RESULT_CHARS) + `\n[...troncato, ${s.length - MAX_TOOL_RESULT_CHARS} caratteri omessi]`;
+}
+
 function estraiUtente(req: any): { nome: string; ruolo: string; email: string } {
   try {
     const auth = req.headers.authorization as string | undefined;
@@ -1199,7 +1205,7 @@ app.post("/api/chat/stream", async (req, res) => {
 
   try {
     const { message, history = [] } = req.body;
-    const trimmedHistory = (history as any[]).slice(-8);
+    const trimmedHistory = (history as any[]).slice(-4);
     const messages = [...trimmedHistory, { role: "user" as const, content: message }];
 
     const utente = estraiUtente(req);
@@ -1265,7 +1271,7 @@ app.post("/api/chat/stream", async (req, res) => {
           args,
         });
 
-        const risultato = await eseguiTool(tc.function.name, args);
+        const risultato = troncaRisultato(await eseguiTool(tc.function.name, args));
 
         currentMessages.push({
           role: "tool" as const,
@@ -1921,7 +1927,7 @@ app.post("/api/chat", async (req, res) => {
     console.log("✅ entro nella root api/chat");
 
     const { message, history = [] } = req.body;
-    const trimmedHistory = (history as any[]).slice(-8);
+    const trimmedHistory = (history as any[]).slice(-4);
     const messages = [...trimmedHistory, { role: "user" as const, content: message }];
 
     const utente = estraiUtente(req);
@@ -2011,7 +2017,7 @@ app.post("/api/chat", async (req, res) => {
           continue;
         }
         console.log(`Tool chiamato: ${tc.function.name}`, args);
-        const risultato = await eseguiTool(tc.function.name, args);
+        const risultato = troncaRisultato(await eseguiTool(tc.function.name, args));
 
         currentMessages.push({
           role: "tool" as const,
