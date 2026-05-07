@@ -206,18 +206,14 @@ export async function generaTurni(
       continue;
     }
 
-    if (usaPreferiti) {
-      // Rotazione tra preferiti: chi ha lavorato meno per QUESTO utente va prima
-      candidati.sort((a, b) => {
-        const countA = contaPerUtente.get(`${slot.utenteId}-${a.id}`) ?? 0;
-        const countB = contaPerUtente.get(`${slot.utenteId}-${b.id}`) ?? 0;
-        if (countA !== countB) return countA - countB;
-        return (oreSettimana.get(a.id) ?? 0) - (oreSettimana.get(b.id) ?? 0);
-      });
-    } else {
-      // Fallback pool: bilanciamento ore globale
-      candidati.sort((a, b) => (oreSettimana.get(a.id) ?? 0) - (oreSettimana.get(b.id) ?? 0));
-    }
+    // Rotazione per utente (preferred e fallback): chi ha già lavorato meno
+    // per QUESTO utente va prima; a parità bilancia le ore globali
+    candidati.sort((a, b) => {
+      const countA = contaPerUtente.get(`${slot.utenteId}-${a.id}`) ?? 0;
+      const countB = contaPerUtente.get(`${slot.utenteId}-${b.id}`) ?? 0;
+      if (countA !== countB) return countA - countB;
+      return (oreSettimana.get(a.id) ?? 0) - (oreSettimana.get(b.id) ?? 0);
+    });
 
     const scelto = candidati[0];
     const chiave = getChiave(scelto.id, slot.data, slot.turno);

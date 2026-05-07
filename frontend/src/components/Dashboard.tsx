@@ -8,6 +8,7 @@ interface InterventoScoperto {
   servizio: string;
   turno: string;
   durata: number;
+  data?: string;
 }
 
 interface BriefingData {
@@ -19,13 +20,14 @@ interface BriefingData {
   utentiAttivi: number;
   interventiSettimana: number;
   sovraccarichi: { nome: string; oreUsate: string; oreMax: number }[];
+  scopertiSettimana: { nomeServizio: string; interventi: InterventoScoperto[] }[];
 }
 
 interface Candidato {
   id: number;
   nome: string;
   qualifica: string;
-  inEquipe: boolean;
+  isPreferito: boolean;
   interventiOggi: number;
 }
 
@@ -231,6 +233,42 @@ export default function Dashboard({
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Scoperto questa settimana per servizio */}
+      {dati.scopertiSettimana?.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontSize: 11, fontWeight: 500, color: "var(--grigio)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>
+            Ore scoperte questa settimana
+          </div>
+          {dati.scopertiSettimana.map((gruppo) => (
+            <div key={gruppo.nomeServizio} style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--inchiostro)", marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ padding: "2px 10px", borderRadius: 20, background: "var(--terra-light)", color: "var(--terra-dark)", border: "1px solid var(--terra)33", fontSize: 11, fontWeight: 500 }}>
+                  {gruppo.nomeServizio}
+                </span>
+                <span style={{ fontSize: 11, color: "var(--grigio)" }}>
+                  {gruppo.interventi.length} slot scoperti
+                </span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {gruppo.interventi.map((i) => (
+                  <div key={i.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderRadius: 10, border: "1px solid var(--bordo)", background: "var(--sabbia)" }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--inchiostro)" }}>{i.utente}</div>
+                      <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 2 }}>
+                        {i.data} · {i.servizio} · {i.turno} · {i.durata} min
+                      </div>
+                    </div>
+                    <button onClick={() => apriAssegna(i)} style={{ padding: "5px 14px", borderRadius: 7, border: "none", background: "var(--terra)", color: "var(--bianco)", fontSize: 12, fontWeight: 500, cursor: "pointer", flexShrink: 0 }}>
+                      Assegna
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -496,10 +534,10 @@ export default function Dashboard({
                       justifyContent: "space-between",
                       padding: "10px 14px",
                       borderRadius: 8,
-                      border: c.inEquipe
+                      border: c.isPreferito
                         ? "1px solid var(--terra)"
                         : "1px solid var(--bordo)",
-                      background: c.inEquipe ? "#fdf6f0" : "var(--sabbia)",
+                      background: c.isPreferito ? "#fdf6f0" : "var(--sabbia)",
                     }}
                   >
                     <div>
@@ -519,7 +557,7 @@ export default function Dashboard({
                         >
                           {c.nome}
                         </span>
-                        {c.inEquipe && (
+                        {c.isPreferito && (
                           <span
                             style={{
                               fontSize: 10,
@@ -530,7 +568,7 @@ export default function Dashboard({
                               fontWeight: 500,
                             }}
                           >
-                            equipe
+                            preferito
                           </span>
                         )}
                       </div>

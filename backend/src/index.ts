@@ -888,6 +888,7 @@ app.get("/api/briefing", async (req, res) => {
     utentiAttivi,
     interventiSettimana,
     interventiScoperti,
+    interventiScopertiSettimana,
   ] = await Promise.all([
     prisma.intervento.findMany({
       where: { data: { gte: oggi, lte: fineOggi } },
@@ -906,6 +907,11 @@ app.get("/api/briefing", async (req, res) => {
       where: { data: { gte: oggi, lte: fineOggi }, operatoreId: null },
       include: { utente: true, tipoServizio: true },
       orderBy: { turno: "asc" },
+    }),
+    prisma.intervento.findMany({
+      where: { data: { gte: lunedi, lte: domenica }, operatoreId: null },
+      include: { utente: { include: { commessa: true } }, tipoServizio: true },
+      orderBy: [{ data: "asc" }, { turno: "asc" }],
     }),
   ]);
 
@@ -964,6 +970,21 @@ app.get("/api/briefing", async (req, res) => {
     utentiAttivi,
     interventiSettimana,
     sovraccarichi,
+    scopertiSettimana: Object.entries(
+      interventiScopertiSettimana.reduce((acc, i) => {
+        const servizio = i.utente.commessa?.nome ?? "Senza servizio";
+        if (!acc[servizio]) acc[servizio] = [];
+        acc[servizio].push({
+          id: i.id,
+          utente: i.utente.nome,
+          servizio: i.tipoServizio?.nome ?? "—",
+          turno: i.turno,
+          durata: i.durata,
+          data: i.data.toISOString().slice(0, 10),
+        });
+        return acc;
+      }, {} as Record<string, any[]>)
+    ).map(([nomeServizio, interventi]) => ({ nomeServizio, interventi })),
   });
 });
 
@@ -1468,12 +1489,12 @@ app.get("/api/interventi/:id/candidati", async (req, res) => {
         id: op.id,
         nome: op.nome,
         qualifica: op.qualifica,
-        inEquipe: idEquipe.has(op.id),
+        isPreferito: idEquipe.has(op.id),
         interventiOggi: carico.get(op.id)?.count ?? 0,
         minutiOggi: carico.get(op.id)?.durata ?? 0,
       }))
       .sort((a, b) => {
-        if (a.inEquipe !== b.inEquipe) return a.inEquipe ? -1 : 1;
+        if (a.isPreferito !== b.isPreferito) return a.isPreferito ? -1 : 1;
         return a.interventiOggi - b.interventiOggi;
       });
 
