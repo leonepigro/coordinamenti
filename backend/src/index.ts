@@ -557,10 +557,6 @@ app.delete("/api/equipe/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/tipi-servizio", async (req, res) => {
-  const tipi = await prisma.tipoServizio.findMany({ orderBy: { nome: "asc" } });
-  res.json(tipi);
-});
 
 // --- INDISPONIBILITÀ ---
 app.get("/api/indisponibilita", async (req, res) => {
