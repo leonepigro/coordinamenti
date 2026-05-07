@@ -47,6 +47,12 @@ export default function App() {
         "Ciao Paola! 👋 Sono il tuo assistente di Coordina*menti*.\n\nPosso aiutarti a:\n• Generare e gestire i turni settimanali\n• Trovare un sostituto in caso di assenza\n• Ottimizzare i percorsi giornalieri degli operatori\n• Consultare piani assistenziali, equipe e indisponibilità\n• Darti un riepilogo rapido della settimana\n\nCosa ti serve oggi?",
     },
   ]);
+  const [messaggioPendente, setMessaggioPendente] = useState<string | null>(null);
+
+  function chiediSuggerimento(msg: string) {
+    setMessaggioPendente(msg);
+    setPagina("chat");
+  }
 
   useEffect(() => {
     const token = localStorage.getItem("cm_token");
@@ -103,7 +109,7 @@ export default function App() {
       }}
       utente={utente}
     >
-      {pagina === "dashboard" && <Dashboard onNavigate={setPagina} />}
+      {pagina === "dashboard" && <Dashboard onNavigate={setPagina} onChiediSuggerimento={chiediSuggerimento} />}
       {pagina === "mappa" && <Mappa />}
       {pagina === "turni" && <TurniGriglia />}
       {pagina === "operatori" && <Operatori />}
@@ -114,7 +120,7 @@ export default function App() {
       {pagina === "piani" && <PianiAssistenziali />}
       {pagina === "servizi" && <TipiServizio />}
       {pagina === "chat" && (
-        <ChatAI messaggi={messaggi} setMessaggi={setMessaggi} />
+        <ChatAI messaggi={messaggi} setMessaggi={setMessaggi} messaggioPendente={messaggioPendente} setMessaggioPendente={(v) => setMessaggioPendente(v)} />
       )}
       {pagina === "utenti-app" && utente?.ruolo === "admin" && (
         <GestioneAccount />

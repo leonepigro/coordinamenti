@@ -988,6 +988,81 @@ app.get("/api/briefing", async (req, res) => {
   });
 });
 
+app.get("/api/gap-ore", async (_req, res) => {
+  const utenti = await prisma.utente.findMany({
+    where: { attivo: true },
+    include: {
+      commessa: true,
+      operatoriPreferiti: { select: { operatoreId: true } },
+      piani: {
+        where: { attivo: true },
+        include: {
+          tipoServizio: { include: { skills: true } },
+          skills: true,
+        },
+      },
+    },
+  });
+
+  const operatori = await prisma.operatore.findMany({
+    where: { attivo: true },
+    include: { skills: true, commesse: true },
+  });
+
+  const risultati: any[] = [];
+
+  for (const utente of utenti) {
+    let minutiPianificati = 0;
+    for (const piano of utente.piani) {
+      const giorni = piano.giorniSettimana.split(",").filter((g) => g.trim() !== "").length;
+      const durata = piano.durata ?? piano.tipoServizio.durata;
+      minutiPianificati += giorni * durata;
+    }
+
+    const orePianificate = Math.round((minutiPianificati / 60) * 10) / 10;
+    const oreContratto = utente.oreSettimanali;
+    const gapOre = Math.round((oreContratto - orePianificate) * 10) / 10;
+
+    if (gapOre <= 0) continue;
+
+    const skillRichieste = new Set<number>();
+    for (const piano of utente.piani) {
+      const skills = piano.skills.length > 0
+        ? piano.skills.map((s) => s.skillId)
+        : piano.tipoServizio.skills.map((s) => s.skillId);
+      skills.forEach((s) => skillRichieste.add(s));
+    }
+
+    const candidati = operatori.filter((op) => {
+      if (utente.commessaId && op.commesse.length > 0) {
+        if (!op.commesse.some((c) => c.commessaId === utente.commessaId)) return false;
+      }
+      if (skillRichieste.size === 0) return true;
+      const skillOp = new Set(op.skills.map((s) => s.skillId));
+      return [...skillRichieste].some((s) => skillOp.has(s));
+    });
+
+    risultati.push({
+      id: utente.id,
+      nome: utente.nome,
+      commessa: utente.commessa?.nome ?? null,
+      oreContratto,
+      orePianificate,
+      gapOre,
+      operatoriDisponibili: candidati.map((op) => ({
+        id: op.id,
+        nome: op.nome,
+        qualifica: op.qualifica,
+        oreSettimanali: op.oreSettimanali,
+        isPreferito: utente.operatoriPreferiti.some((p) => p.operatoreId === op.id),
+      })),
+    });
+  }
+
+  risultati.sort((a, b) => b.gapOre - a.gapOre);
+  res.json({ utenti: risultati });
+});
+
 function estraiUtente(req: any): { nome: string; ruolo: string; email: string } {
   try {
     const auth = req.headers.authorization as string | undefined;

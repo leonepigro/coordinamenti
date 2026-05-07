@@ -112,6 +112,10 @@ export const briefing = {
     api.put(`/interventi/${interventoId}/assegna`, { operatoreId }),
 };
 
+export const gapOre = {
+  get: () => api.get("/gap-ore"),
+};
+
 export const chat = {
   invia: (message: string, history: any[]) =>
     api.post("/chat", { message, history }),

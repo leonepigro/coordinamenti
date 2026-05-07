@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { briefing as briefingApi } from "../api/client";
+import { briefing as briefingApi, gapOre as gapOreApi } from "../api/client";
 import type { Pagina } from "../App";
 
 interface InterventoScoperto {
@@ -31,10 +31,22 @@ interface Candidato {
   interventiOggi: number;
 }
 
+interface UtenteGap {
+  id: number;
+  nome: string;
+  commessa: string | null;
+  oreContratto: number;
+  orePianificate: number;
+  gapOre: number;
+  operatoriDisponibili: { id: number; nome: string; qualifica: string; oreSettimanali: number; isPreferito: boolean }[];
+}
+
 export default function Dashboard({
   onNavigate: _onNavigate,
+  onChiediSuggerimento,
 }: {
   onNavigate?: (p: Pagina) => void;
+  onChiediSuggerimento?: (msg: string) => void;
 }) {
   const [dati, setDati] = useState<BriefingData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,12 +56,17 @@ export default function Dashboard({
   const [candidati, setCandidati] = useState<Candidato[]>([]);
   const [loadingCandidati, setLoadingCandidati] = useState(false);
   const [assegnando, setAssegnando] = useState<number | null>(null);
+  const [gap, setGap] = useState<UtenteGap[]>([]);
 
   async function caricaDati() {
     setLoading(true);
     try {
-      const res = await briefingApi.get();
-      setDati(res.data);
+      const [resBriefing, resGap] = await Promise.all([
+        briefingApi.get(),
+        gapOreApi.get(),
+      ]);
+      setDati(resBriefing.data);
+      setGap(resGap.data.utenti);
     } finally {
       setLoading(false);
     }
@@ -234,6 +251,54 @@ export default function Dashboard({
           </div>
         )}
       </div>
+
+      {/* Ore da pianificare */}
+      {gap.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ fontSize: 11, fontWeight: 500, color: "var(--grigio)", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 12 }}>
+            Ore da pianificare
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {gap.map((u) => {
+              const testoSuggerimento =
+                `Utente ${u.nome}${u.commessa ? ` (servizio: ${u.commessa})` : ""} ha ${u.oreContratto}h settimanali contrattualizzate ma solo ${u.orePianificate}h pianificate nel piano assistenziale, con un gap di ${u.gapOre}h.\n` +
+                (u.operatoriDisponibili.length > 0
+                  ? `Operatori disponibili con skill compatibili: ${u.operatoriDisponibili.map((op) => `${op.nome} (${op.qualifica}, ${op.oreSettimanali}h/sett.${op.isPreferito ? ", preferito" : ""})`).join(", ")}.\n`
+                  : "Nessun operatore con skill compatibili trovato.\n") +
+                `Suggerisci come coprire queste ore: quali attività aggiungere al piano assistenziale e come distribuirle tra gli operatori disponibili.`;
+
+              return (
+                <div key={u.id} style={{ padding: "14px 16px", borderRadius: 10, border: "1px solid #e8d5c4", background: "#fffaf7", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: "var(--inchiostro)" }}>{u.nome}</span>
+                      {u.commessa && (
+                        <span style={{ fontSize: 11, padding: "1px 8px", borderRadius: 20, background: "var(--terra-light)", color: "var(--terra-dark)", border: "1px solid var(--terra)33" }}>{u.commessa}</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 4 }}>
+                      {u.orePianificate}h pianificate su {u.oreContratto}h · <span style={{ color: "#c47a2a", fontWeight: 500 }}>–{u.gapOre}h da coprire</span>
+                    </div>
+                    {u.operatoriDisponibili.length > 0 && (
+                      <div style={{ fontSize: 11, color: "var(--grigio)", marginTop: 4 }}>
+                        Operatori compatibili: {u.operatoriDisponibili.slice(0, 3).map((op) => op.nome).join(", ")}{u.operatoriDisponibili.length > 3 ? ` +${u.operatoriDisponibili.length - 3}` : ""}
+                      </div>
+                    )}
+                  </div>
+                  {onChiediSuggerimento && (
+                    <button
+                      onClick={() => onChiediSuggerimento(testoSuggerimento)}
+                      style={{ padding: "6px 14px", borderRadius: 7, border: "1px solid var(--terra)", background: "transparent", color: "var(--terra)", fontSize: 12, fontWeight: 500, cursor: "pointer", flexShrink: 0 }}
+                    >
+                      Suggerisci
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Sovraccarichi */}
       {dati.sovraccarichi.length > 0 && (

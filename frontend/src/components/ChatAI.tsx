@@ -20,9 +20,13 @@ const SUGGERIMENTI = [
 export default function ChatAI({
   messaggi,
   setMessaggi,
+  messaggioPendente,
+  setMessaggioPendente,
 }: {
   messaggi: Messaggio[];
   setMessaggi: React.Dispatch<React.SetStateAction<Messaggio[]>>;
+  messaggioPendente?: string | null;
+  setMessaggioPendente?: (v: null) => void;
 }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,6 +45,13 @@ export default function ChatAI({
       caricaBriefing();
     }
   }, []);
+
+  useEffect(() => {
+    if (messaggioPendente) {
+      setMessaggioPendente?.(null);
+      invia(messaggioPendente);
+    }
+  }, [messaggioPendente]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
