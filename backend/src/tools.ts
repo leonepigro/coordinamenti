@@ -403,7 +403,6 @@ export async function eseguiTool(nome: string, args: any): Promise<string> {
     case "get_equipe": {
       const equipe = await prisma.equipe.findMany({
         include: {
-          utente: true,
           membri: { include: { operatore: true } },
         },
       });
@@ -411,7 +410,6 @@ export async function eseguiTool(nome: string, args: any): Promise<string> {
         equipe.map((e) => ({
           id: e.id,
           nome: e.nome,
-          utente: e.utente.nome,
           membri: e.membri.map((m) => ({
             operatore: m.operatore.nome,
             qualifica: m.operatore.qualifica,

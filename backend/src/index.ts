@@ -691,17 +691,17 @@ app.post("/api/indisponibilita/ricalcola", async (req, res) => {
       continue;
     }
 
-    // Preferisci operatori dell'equipe dell'utente
-    const equipe = await prisma.equipe.findFirst({
+    // Preferisci operatori preferiti dell'utente
+    const preferiti = await prisma.operatorePreferito.findMany({
       where: { utenteId: intervento.utenteId },
-      include: { membri: true },
+      select: { operatoreId: true },
     });
-    const idEquipe = equipe?.membri.map((m) => m.operatoreId) ?? [];
+    const idPreferiti = new Set(preferiti.map((p) => p.operatoreId));
 
     candidati.sort((a, b) => {
-      const aInEquipe = idEquipe.includes(a.id) ? 0 : 1;
-      const bInEquipe = idEquipe.includes(b.id) ? 0 : 1;
-      return aInEquipe - bInEquipe;
+      const aPreferito = idPreferiti.has(a.id) ? 0 : 1;
+      const bPreferito = idPreferiti.has(b.id) ? 0 : 1;
+      return aPreferito - bPreferito;
     });
 
     const scelto = candidati[0];
@@ -1429,9 +1429,9 @@ app.get("/api/interventi/:id/candidati", async (req, res) => {
       prisma.indisponibilita.findMany({
         where: { data: { gte: inizioGiorno, lte: fineGiorno } },
       }),
-      prisma.equipe.findFirst({
+      prisma.operatorePreferito.findMany({
         where: { utenteId: intervento.utenteId },
-        include: { membri: true },
+        select: { operatoreId: true },
       }),
       prisma.intervento.groupBy({
         by: ["operatoreId"],
@@ -1449,7 +1449,7 @@ app.get("/api/interventi/:id/candidati", async (req, res) => {
     ]);
 
     const idIndisponibili = new Set(indisponibili.map((i) => i.operatoreId));
-    const idEquipe = new Set(equipe?.membri.map((m) => m.operatoreId) ?? []);
+    const idEquipe = new Set(equipe.map((p) => p.operatoreId));
     const carico = new Map(
       caricoOggi.map((c) => [
         c.operatoreId,
