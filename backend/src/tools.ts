@@ -251,11 +251,7 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
           nome: o.nome,
           qualifica: o.qualifica,
           oreSettimanali: o.oreSettimanali,
-          preferenzaTurno: o.preferenzaTurno ?? "tutti i turni",
-          sesso: o.sesso,
-          nazionalita: o.nazionalita,
-          mezzoTrasporto: o.mezzoTrasporto,
-          telefono: o.telefono,
+          preferenzaTurno: o.preferenzaTurno ?? "tutti",
           skills: o.skills.map((s) => s.skill.nome),
         })),
       );
@@ -277,18 +273,13 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
         utenti.map((u) => ({
           id: u.id,
           nome: u.nome,
-          indirizzo: u.indirizzo,
           oreSettimanali: u.oreSettimanali,
-          note: u.note,
-          operatoriPreferiti: u.operatoriPreferiti.map((p) => p.operatore.nome),
+          ...(u.note ? { note: u.note } : {}),
+          preferiti: u.operatoriPreferiti.map((p) => p.operatore.nome),
           piani: u.piani.map((p) => ({
             servizio: p.tipoServizio.nome,
             giorni: p.giorniSettimana,
-            ora: p.oraInizio,
             durata: p.durata ?? p.tipoServizio.durata,
-            vincoloSesso: p.vincoloSesso,
-            vincoloNazionalita: p.vincoloNazionalita,
-            skillPersonalizzate: p.skills.length > 0 ? p.skills.map((s) => s.skill.nome) : null,
           })),
         })),
       );
@@ -387,7 +378,7 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
     }
 
     case "get_skill": {
-      const skill = await prisma.skill.findMany({ orderBy: { nome: "asc" } });
+      const skill = await prisma.skill.findMany({ orderBy: { nome: "asc" }, select: { id: true, nome: true } });
       return JSON.stringify(skill);
     }
 

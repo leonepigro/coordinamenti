@@ -1121,7 +1121,7 @@ app.get("/api/gap-ore", async (_req, res) => {
   res.json({ utenti: risultati });
 });
 
-const MAX_TOOL_RESULT_CHARS = 3000;
+const MAX_TOOL_RESULT_CHARS = 1500;
 function troncaRisultato(s: string): string {
   if (s.length <= MAX_TOOL_RESULT_CHARS) return s;
   return s.slice(0, MAX_TOOL_RESULT_CHARS) + `\n[...troncato, ${s.length - MAX_TOOL_RESULT_CHARS} caratteri omessi]`;
