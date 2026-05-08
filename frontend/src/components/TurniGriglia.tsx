@@ -511,6 +511,7 @@ function VistaGiorno({
   const [assegna, setAssegna] = useState<{ id: number; nome: string } | null>(null);
   const [candidati, setCandidati] = useState<any[]>([]);
   const [assegnando, setAssegnando] = useState(false);
+  const [erroreAssegna, setErroreAssegna] = useState<string | null>(null);
   const [avvisiPopup, setAvvisiPopup] = useState<{ interventoId: number; operatoreId: number; avvisi: string[] } | null>(null);
 
   const mattina = interventi.filter((i) => i.turno === "mattina");
@@ -556,6 +557,7 @@ function VistaGiorno({
   async function confermaAssegna(operatoreId: number, forza = false) {
     if (!assegna) return;
     setAssegnando(true);
+    setErroreAssegna(null);
     try {
       const res = await api.put(`/interventi/${assegna.id}/assegna`, { operatoreId, forza });
       if (res.data.richiedeConferma) {
@@ -565,6 +567,8 @@ function VistaGiorno({
       setAssegna(null);
       setAvvisiPopup(null);
       onRefresh();
+    } catch (e: any) {
+      setErroreAssegna(e?.response?.data?.error ?? "Errore durante l'assegnazione. Riprova.");
     } finally {
       setAssegnando(false);
     }
@@ -573,11 +577,15 @@ function VistaGiorno({
   async function forzaAssegna() {
     if (!avvisiPopup) return;
     setAssegnando(true);
+    setErroreAssegna(null);
     try {
       await api.put(`/interventi/${avvisiPopup.interventoId}/assegna`, { operatoreId: avvisiPopup.operatoreId, forza: true });
       setAssegna(null);
       setAvvisiPopup(null);
       onRefresh();
+    } catch (e: any) {
+      setErroreAssegna(e?.response?.data?.error ?? "Errore durante l'assegnazione. Riprova.");
+      setAvvisiPopup(null);
     } finally {
       setAssegnando(false);
     }
@@ -875,9 +883,14 @@ function VistaGiorno({
             <div style={{ fontSize: 15, fontWeight: 600, color: "var(--inchiostro)", marginBottom: 4 }}>
               Assegna operatore
             </div>
-            <div style={{ fontSize: 13, color: "var(--grigio)", marginBottom: 20 }}>
+            <div style={{ fontSize: 13, color: "var(--grigio)", marginBottom: erroreAssegna ? 12 : 20 }}>
               {assegna.nome}
             </div>
+            {erroreAssegna && (
+              <div style={{ fontSize: 13, color: "#C94040", background: "#FEF3E8", border: "1px solid #F2B97F", borderRadius: 8, padding: "8px 12px", marginBottom: 16 }}>
+                {erroreAssegna}
+              </div>
+            )}
             {candidati.length === 0 ? (
               <div style={{ fontSize: 13, color: "var(--grigio)", textAlign: "center", padding: "24px 0" }}>
                 Nessun operatore disponibile
