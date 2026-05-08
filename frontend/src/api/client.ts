@@ -10,6 +10,8 @@ export default api;
 export const scheduling = {
   genera: (dataInizio: string, dataFine: string) =>
     api.post("/scheduling/genera", { dataInizio, dataFine }),
+  spiega: (dataInizio: string, dataFine: string) =>
+    api.post("/scheduling/spiega", { dataInizio, dataFine }),
 };
 
 export const routing = {

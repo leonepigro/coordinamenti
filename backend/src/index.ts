@@ -110,6 +110,39 @@ import { generaTurni, salvaAssegnazioni } from "./scheduler";
 import { inviaRiepilogoGiornaliero, inviaAggiornamentoPianificazione } from "./notifiche";
 import cron from "node-cron";
 
+app.post("/api/scheduling/spiega", async (req, res) => {
+  try {
+    const { dataInizio, dataFine } = req.body;
+    const inizio = new Date(dataInizio); inizio.setHours(0, 0, 0, 0);
+    const fine = new Date(dataFine); fine.setHours(23, 59, 59, 999);
+
+    const lista = await prisma.intervento.findMany({
+      where: { data: { gte: inizio, lte: fine } },
+      include: { operatore: true, utente: true, tipoServizio: true },
+      orderBy: [{ data: "asc" }, { turno: "asc" }],
+    });
+
+    if (lista.length === 0) return res.json({ spiegazione: "Nessun intervento generato." });
+
+    const scoperti = lista.filter((i) => !i.operatore);
+    const fmt = (d: Date) => `${d.getDate()}/${d.getMonth() + 1}`;
+    const righe = lista.map((i) =>
+      `${fmt(i.data)} ${i.turno}: ${i.utente.nome} → ${i.operatore?.nome ?? "SCOPERTO"} (${i.tipoServizio?.nome ?? "?"}, ${i.durata}min)`
+    ).join("\n");
+
+    const prompt = `Sei coordinatore di Coordina**menti**. Hai appena generato questo piano turni:\n\n${righe}\n\nFornisci un'analisi sintetica in 3-5 bullet point: punti di forza, criticità${scoperti.length > 0 ? ` (${scoperti.length} scoperti)` : ""}, suggerimenti operativi concreti. Max 150 parole.`;
+
+    try {
+      const { res: completion } = await chatWithFallback({ messages: [{ role: "user", content: prompt }], tools: [] });
+      res.json({ spiegazione: completion.choices[0].message.content ?? "" });
+    } catch {
+      res.json({ spiegazione: `Piano generato: **${lista.length - scoperti.length}** assegnati, **${scoperti.length}** scoperti.` });
+    }
+  } catch (e) {
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
 app.post("/api/scheduling/genera", async (req, res) => {
   try {
     const { dataInizio, dataFine } = req.body;
@@ -1679,15 +1712,49 @@ app.get("/api/interventi/:id/candidati", async (req, res) => {
   }
 });
 
-// Assegna un operatore a un intervento
+// Assegna un operatore a un intervento (con validazione vincoli)
 app.put("/api/interventi/:id/assegna", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { operatoreId } = req.body;
-    await prisma.intervento.update({
-      where: { id },
-      data: { operatoreId },
-    });
+    const { operatoreId, forza = false } = req.body;
+
+    if (!forza && operatoreId) {
+      const avvisi: string[] = [];
+      const [intervento, operatore] = await Promise.all([
+        prisma.intervento.findUnique({ where: { id }, include: { tipoServizio: { include: { skills: true } } } }),
+        prisma.operatore.findUnique({ where: { id: operatoreId }, include: { skills: true } }),
+      ]);
+      if (!intervento || !operatore) return res.status(404).json({ ok: false });
+
+      const giornoInizio = new Date(intervento.data); giornoInizio.setHours(0, 0, 0, 0);
+      const giornoFine = new Date(intervento.data); giornoFine.setHours(23, 59, 59, 999);
+
+      const ind = await prisma.indisponibilita.findFirst({
+        where: { operatoreId, data: { gte: giornoInizio, lte: giornoFine } },
+      });
+      if (ind) avvisi.push(`Operatore segnato come indisponibile${ind.motivo ? ` (${ind.motivo})` : ""}`);
+
+      const skillRichieste = intervento.tipoServizio?.skills.map((s) => s.skillId) ?? [];
+      if (skillRichieste.length > 0) {
+        const skillOp = new Set(operatore.skills.map((s) => s.skillId));
+        if (!skillRichieste.every((s) => skillOp.has(s))) avvisi.push("Operatore senza tutte le skill richieste per questo servizio");
+      }
+
+      const dow = giornoInizio.getDay();
+      const lunedi = new Date(giornoInizio);
+      lunedi.setDate(giornoInizio.getDate() - (dow === 0 ? 6 : dow - 1));
+      const domenica = new Date(lunedi); domenica.setDate(lunedi.getDate() + 6); domenica.setHours(23, 59, 59, 999);
+      const somma = await prisma.intervento.aggregate({
+        where: { operatoreId, data: { gte: lunedi, lte: domenica }, id: { not: id } },
+        _sum: { durata: true },
+      });
+      const oreUsate = ((somma._sum.durata ?? 0) + intervento.durata) / 60;
+      if (oreUsate > operatore.oreSettimanali) avvisi.push(`Ore settimanali superate: ${oreUsate.toFixed(1)}h su ${operatore.oreSettimanali}h contratto`);
+
+      if (avvisi.length > 0) return res.json({ ok: false, richiedeConferma: true, avvisi });
+    }
+
+    await prisma.intervento.update({ where: { id }, data: { operatoreId } });
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e) });

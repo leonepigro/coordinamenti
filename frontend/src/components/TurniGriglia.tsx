@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import ReactMarkdown from "react-markdown";
 import api, { scheduling, interventi as apiInterventi } from "../api/client";
 import {
   format,
@@ -59,6 +60,8 @@ export default function TurniGriglia() {
   const [esitoGenerazione, setEsitoGenerazione] = useState<{
     assegnati: number;
     scoperti: number;
+    spiegazione?: string;
+    caricandoSpiegazione?: boolean;
   } | null>(null);
 
   const { dataInizio, dataFine } = useMemo(() => {
@@ -114,7 +117,10 @@ export default function TurniGriglia() {
       const res = await scheduling.genera(rangeInizio, rangeFine);
       setRefresh((r) => r + 1);
       setMostraRange(false);
-      setEsitoGenerazione({ assegnati: res.data.assegnati, scoperti: res.data.scoperti });
+      setEsitoGenerazione({ assegnati: res.data.assegnati, scoperti: res.data.scoperti, caricandoSpiegazione: true });
+      scheduling.spiega(rangeInizio, rangeFine)
+        .then((r) => setEsitoGenerazione((prev) => prev ? { ...prev, spiegazione: r.data.spiegazione, caricandoSpiegazione: false } : prev))
+        .catch(() => setEsitoGenerazione((prev) => prev ? { ...prev, caricandoSpiegazione: false } : prev));
     } finally {
       setGenerando(false);
     }
@@ -288,31 +294,47 @@ export default function TurniGriglia() {
       {esitoGenerazione && (
         <div
           style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 16,
-            padding: "12px 18px",
             borderRadius: 12,
             marginBottom: 16,
             background: esitoGenerazione.scoperti > 0 ? "#FEF3E8" : "#EDF7EE",
             border: `1px solid ${esitoGenerazione.scoperti > 0 ? "#F2B97F" : "#90C49A"}`,
             fontSize: 13,
+            overflow: "hidden",
           }}
         >
-          <span style={{ color: esitoGenerazione.scoperti > 0 ? "#8B4E10" : "#2D6B38", flex: 1 }}>
-            Piano generato: <strong>{esitoGenerazione.assegnati}</strong> interventi assegnati
-            {esitoGenerazione.scoperti > 0 && (
-              <span style={{ color: "#C94040", fontWeight: 500 }}>
-                {" "}· {esitoGenerazione.scoperti} scoperti — assegnali manualmente dalla vista giorno
-              </span>
-            )}
-          </span>
-          <button
-            onClick={() => setEsitoGenerazione(null)}
-            style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "var(--grigio)", padding: 0 }}
-          >
-            ×
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "12px 18px" }}>
+            <span style={{ color: esitoGenerazione.scoperti > 0 ? "#8B4E10" : "#2D6B38", flex: 1 }}>
+              Piano generato: <strong>{esitoGenerazione.assegnati}</strong> interventi assegnati
+              {esitoGenerazione.scoperti > 0 && (
+                <span style={{ color: "#C94040", fontWeight: 500 }}>
+                  {" "}· {esitoGenerazione.scoperti} scoperti — assegnali manualmente dalla vista giorno
+                </span>
+              )}
+            </span>
+            <button
+              onClick={() => setEsitoGenerazione(null)}
+              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "var(--grigio)", padding: 0 }}
+            >
+              ×
+            </button>
+          </div>
+          {/* Spiegazione AI */}
+          <div style={{ borderTop: `1px solid ${esitoGenerazione.scoperti > 0 ? "#F2B97F" : "#90C49A"}`, padding: "12px 18px", background: "rgba(255,255,255,0.5)" }}>
+            {esitoGenerazione.caricandoSpiegazione ? (
+              <div style={{ fontSize: 12, color: "var(--grigio)", fontStyle: "italic" }}>Analisi AI in corso...</div>
+            ) : esitoGenerazione.spiegazione ? (
+              <div style={{ fontSize: 13, color: "var(--inchiostro)", lineHeight: 1.7 }}>
+                <ReactMarkdown components={{
+                  p: ({ children }) => <p style={{ margin: "0 0 6px" }}>{children}</p>,
+                  ul: ({ children }) => <ul style={{ margin: "4px 0", paddingLeft: 18 }}>{children}</ul>,
+                  li: ({ children }) => <li style={{ marginBottom: 3 }}>{children}</li>,
+                  strong: ({ children }) => <strong style={{ fontWeight: 600 }}>{children}</strong>,
+                }}>
+                  {esitoGenerazione.spiegazione}
+                </ReactMarkdown>
+              </div>
+            ) : null}
+          </div>
         </div>
       )}
 
@@ -489,6 +511,7 @@ function VistaGiorno({
   const [assegna, setAssegna] = useState<{ id: number; nome: string } | null>(null);
   const [candidati, setCandidati] = useState<any[]>([]);
   const [assegnando, setAssegnando] = useState(false);
+  const [avvisiPopup, setAvvisiPopup] = useState<{ interventoId: number; operatoreId: number; avvisi: string[] } | null>(null);
 
   const mattina = interventi.filter((i) => i.turno === "mattina");
   const pomeriggio = interventi.filter((i) => i.turno === "pomeriggio");
@@ -527,15 +550,33 @@ function VistaGiorno({
     setAssegna({ id: i.id, nome: i.utente.nome });
     setCandidati([]);
     const res = await api.get(`/interventi/${i.id}/candidati`);
-    setCandidati(res.data);
+    setCandidati(res.data.candidati ?? res.data ?? []);
   }
 
-  async function confermaAssegna(operatoreId: number) {
+  async function confermaAssegna(operatoreId: number, forza = false) {
     if (!assegna) return;
     setAssegnando(true);
     try {
-      await api.put(`/interventi/${assegna.id}/assegna`, { operatoreId });
+      const res = await api.put(`/interventi/${assegna.id}/assegna`, { operatoreId, forza });
+      if (res.data.richiedeConferma) {
+        setAvvisiPopup({ interventoId: assegna.id, operatoreId, avvisi: res.data.avvisi });
+        return;
+      }
       setAssegna(null);
+      setAvvisiPopup(null);
+      onRefresh();
+    } finally {
+      setAssegnando(false);
+    }
+  }
+
+  async function forzaAssegna() {
+    if (!avvisiPopup) return;
+    setAssegnando(true);
+    try {
+      await api.put(`/interventi/${avvisiPopup.interventoId}/assegna`, { operatoreId: avvisiPopup.operatoreId, forza: true });
+      setAssegna(null);
+      setAvvisiPopup(null);
       onRefresh();
     } finally {
       setAssegnando(false);
@@ -752,24 +793,16 @@ function VistaGiorno({
                           </button>
                         ) : (
                           <>
-                            <div
-                              style={{
-                                fontSize: 12,
-                                color: c?.color ?? "var(--grigio)",
-                                fontWeight: 500,
-                              }}
-                            >
+                            <div style={{ fontSize: 12, color: c?.color ?? "var(--grigio)", fontWeight: 500 }}>
                               {i.operatore?.nome.split(" ")[1] ?? "—"}
                             </div>
-                            <div
-                              style={{
-                                fontSize: 11,
-                                color: "var(--grigio)",
-                                marginTop: 2,
-                              }}
+                            <div style={{ fontSize: 11, color: "var(--grigio)", marginTop: 2 }}>{i.durata}min</div>
+                            <button
+                              onClick={() => apriAssegna(i)}
+                              style={{ background: "none", border: "none", cursor: "pointer", fontSize: 11, color: "var(--grigio)", padding: 0, marginTop: 2, textDecoration: "underline" }}
                             >
-                              {i.durata}min
-                            </div>
+                              Cambia
+                            </button>
                           </>
                         )}
                       </div>
@@ -781,6 +814,38 @@ function VistaGiorno({
           </div>
         ))}
       </div>
+
+      {/* Popup vincoli violati */}
+      {avvisiPopup && (
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100 }}
+          onClick={() => setAvvisiPopup(null)}
+        >
+          <div
+            style={{ background: "var(--bianco)", borderRadius: 16, padding: 28, width: 400, maxWidth: "90vw", boxShadow: "0 8px 32px rgba(0,0,0,0.2)" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 15, fontWeight: 600, color: "#C94040", marginBottom: 14 }}>⚠️ Vincoli non rispettati</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+              {avvisiPopup.avvisi.map((a, idx) => (
+                <div key={idx} style={{ fontSize: 13, color: "var(--inchiostro)", padding: "8px 12px", borderLeft: "3px solid #F2B97F", background: "#FEF3E8", borderRadius: "0 8px 8px 0" }}>
+                  {a}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button onClick={() => setAvvisiPopup(null)} style={btnSecondarioStyle}>Annulla</button>
+              <button
+                onClick={forzaAssegna}
+                disabled={assegnando}
+                style={{ ...btnPrimarioStyle, background: "#C94040" }}
+              >
+                {assegnando ? "..." : "Forza comunque"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal assegnazione manuale */}
       {assegna && (
