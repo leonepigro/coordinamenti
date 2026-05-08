@@ -919,7 +919,7 @@ function VistaGiorno({
                 Nessun operatore attivo
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: "55vh", overflowY: "auto" }}>
                 {candidati.map((c: any) => (
                   <button
                     key={c.id}
