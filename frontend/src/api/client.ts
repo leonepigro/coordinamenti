@@ -167,6 +167,11 @@ export const chat = {
   },
 };
 
+export const feedbackAI = {
+  salva: (data: { messaggio: string; risposta: string; toolsUsati: string[]; rating: 1 | -1; nota?: string; contesto?: any }) =>
+    api.post("/feedback-ai", data),
+};
+
 export const importa = {
   operatori: (righe: any[]) => api.post("/import/operatori", { righe }),
   utenti: (righe: any[]) => api.post("/import/utenti", { righe }),

@@ -1510,6 +1510,27 @@ app.delete("/api/utenti-app/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
+// Feedback AI
+app.post("/api/feedback-ai", async (req, res) => {
+  try {
+    const { messaggio = "", risposta = "", toolsUsati = [], rating, nota, contesto } = req.body;
+    if (rating !== 1 && rating !== -1) return res.status(400).json({ ok: false, errore: "rating deve essere 1 o -1" });
+
+    let tipo = "generale";
+    if ((toolsUsati as string[]).includes("genera_turni")) tipo = "genera_turni";
+    else if ((toolsUsati as string[]).includes("trova_sostituto")) tipo = "trova_sostituto";
+    else if (KEYWORDS_ATTIVITA.some((k) => (messaggio as string).toLowerCase().includes(k))) tipo = "suggerimento_attivita";
+
+    const fb = await prisma.feedbackAI.create({
+      data: { tipo, messaggio, risposta, toolsUsati, rating, nota: nota || null, contesto: contesto ?? undefined },
+    });
+    res.json({ ok: true, id: fb.id });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false, error: String(e) });
+  }
+});
+
 // Configurazione esposta al frontend
 app.get("/api/config", (_req, res) => {
   res.json({

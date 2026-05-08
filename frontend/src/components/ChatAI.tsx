@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { chat, briefing as apiBriefing } from "../api/client";
+import { chat, briefing as apiBriefing, feedbackAI } from "../api/client";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import ReactMarkdown from "react-markdown";
@@ -8,6 +8,8 @@ interface Messaggio {
   ruolo: "user" | "ai";
   testo: string;
   timestamp?: Date;
+  toolsUsati?: string[];
+  messaggioUtente?: string;
 }
 
 const SUGGERIMENTI = [
@@ -31,6 +33,7 @@ export default function ChatAI({
 }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState<Record<number, 1 | -1>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
 
   const [reasoning, setReasoning] = useState<
@@ -103,6 +106,18 @@ export default function ChatAI({
     }
   }
 
+  async function daiFeedback(idx: number, m: Messaggio, rating: 1 | -1) {
+    setFeedback((prev) => ({ ...prev, [idx]: rating }));
+    try {
+      await feedbackAI.salva({
+        messaggio: m.messaggioUtente ?? "",
+        risposta: m.testo,
+        toolsUsati: m.toolsUsati ?? [],
+        rating,
+      });
+    } catch { /* silenzioso */ }
+  }
+
   async function invia(testo?: string) {
     const msg = (testo ?? input).trim();
     if (!msg || loading) return;
@@ -122,6 +137,8 @@ export default function ChatAI({
         content: m.testo,
       }));
 
+      const toolsAccumulati: string[] = [];
+
       await chat.stream(msg, history, (event) => {
         if (event.tipo === "stato") {
           setReasoning((prev) => [
@@ -129,6 +146,7 @@ export default function ChatAI({
             { tipo: "stato", testo: event.testo },
           ]);
         } else if (event.tipo === "tool") {
+          toolsAccumulati.push(event.nome);
           setReasoning((prev) => [
             ...prev,
             { tipo: "tool", testo: event.testo, nome: event.nome },
@@ -145,7 +163,7 @@ export default function ChatAI({
           setReasoningAttivo(false);
           setMessaggi((prev) => [
             ...prev,
-            { ruolo: "ai", testo: event.testo, timestamp: new Date() },
+            { ruolo: "ai", testo: event.testo, timestamp: new Date(), toolsUsati: [...toolsAccumulati], messaggioUtente: msg },
           ]);
         } else if (event.tipo === "errore") {
           setReasoningAttivo(false);
@@ -313,6 +331,34 @@ export default function ChatAI({
                 </ReactMarkdown>
               )}
             </div>
+
+            {/* Feedback */}
+            {m.ruolo === "ai" && m.messaggioUtente && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
+                {feedback[idx] === undefined ? (
+                  <>
+                    <button
+                      onClick={() => daiFeedback(idx, m, 1)}
+                      title="Risposta utile"
+                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: "2px 4px", borderRadius: 6, opacity: 0.5, transition: "opacity 0.15s" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                      onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.5")}
+                    >👍</button>
+                    <button
+                      onClick={() => daiFeedback(idx, m, -1)}
+                      title="Risposta non utile"
+                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: "2px 4px", borderRadius: 6, opacity: 0.5, transition: "opacity 0.15s" }}
+                      onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                      onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.5")}
+                    >👎</button>
+                  </>
+                ) : (
+                  <span style={{ fontSize: 11, color: "var(--grigio)" }}>
+                    {feedback[idx] === 1 ? "👍" : "👎"} Grazie
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Timestamp */}
             {m.timestamp && (

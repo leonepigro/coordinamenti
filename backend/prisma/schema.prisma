@@ -189,3 +189,15 @@ model UtenteApp {
   createdAt   DateTime @default(now())
   operatore   Operatore? @relation(fields: [operatoreId], references: [id])
 }
+
+model FeedbackAI {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  tipo       String   // genera_turni | trova_sostituto | suggerimento_attivita | generale
+  messaggio  String
+  risposta   String
+  toolsUsati String[]
+  rating     Int      // 1 | -1
+  nota       String?
+  contesto   Json?
+}
