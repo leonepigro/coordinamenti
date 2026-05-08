@@ -1550,7 +1550,8 @@ app.post("/api/feedback-ai", async (req, res) => {
     if (rating !== 1 && rating !== -1) return res.status(400).json({ ok: false, errore: "rating deve essere 1 o -1" });
 
     let tipo = "generale";
-    if ((toolsUsati as string[]).includes("genera_turni")) tipo = "genera_turni";
+    if ((toolsUsati as string[]).includes("cambio_manuale")) tipo = "cambio_manuale";
+    else if ((toolsUsati as string[]).includes("genera_turni")) tipo = "genera_turni";
     else if ((toolsUsati as string[]).includes("trova_sostituto")) tipo = "trova_sostituto";
     else if (KEYWORDS_ATTIVITA.some((k) => (messaggio as string).toLowerCase().includes(k))) tipo = "suggerimento_attivita";
 

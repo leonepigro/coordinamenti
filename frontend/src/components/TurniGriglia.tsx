@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
-import api, { scheduling, interventi as apiInterventi } from "../api/client";
+import api, { scheduling, interventi as apiInterventi, feedbackAI } from "../api/client";
 import {
   format,
   startOfWeek,
@@ -554,6 +554,27 @@ function VistaGiorno({
     setCandidati(res.data.candidati ?? res.data ?? []);
   }
 
+  function salvaCoordManuale(interventoId: number, operatoreNuovoId: number, forzato: boolean, avvisi: string[] = []) {
+    const intervento = interventi.find((i) => i.id === interventoId);
+    feedbackAI.salva({
+      messaggio: "cambio_manuale",
+      risposta: "",
+      toolsUsati: ["cambio_manuale"],
+      rating: 1,
+      contesto: {
+        interventoId,
+        utenteNome: intervento?.utente.nome ?? null,
+        operatoreOriginale: intervento?.operatore?.nome ?? null,
+        operatoreOriginaleId: intervento?.operatore?.id ?? null,
+        operatoreNuovoId,
+        turno: intervento?.turno ?? null,
+        data: intervento?.data ?? null,
+        forzato,
+        avvisi,
+      },
+    }).catch(() => {/* non bloccare l'UI */});
+  }
+
   async function confermaAssegna(operatoreId: number, forza = false) {
     if (!assegna) return;
     setAssegnando(true);
@@ -564,6 +585,7 @@ function VistaGiorno({
         setAvvisiPopup({ interventoId: assegna.id, operatoreId, avvisi: res.data.avvisi });
         return;
       }
+      salvaCoordManuale(assegna.id, operatoreId, false);
       setAssegna(null);
       setAvvisiPopup(null);
       onRefresh();
@@ -580,6 +602,7 @@ function VistaGiorno({
     setErroreAssegna(null);
     try {
       await api.put(`/interventi/${avvisiPopup.interventoId}/assegna`, { operatoreId: avvisiPopup.operatoreId, forza: true });
+      salvaCoordManuale(avvisiPopup.interventoId, avvisiPopup.operatoreId, true, avvisiPopup.avvisi);
       setAssegna(null);
       setAvvisiPopup(null);
       onRefresh();
