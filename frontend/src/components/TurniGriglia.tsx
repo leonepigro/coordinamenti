@@ -897,8 +897,8 @@ function VistaGiorno({
               background: "var(--bianco)",
               borderRadius: 16,
               padding: 28,
-              width: 380,
-              maxWidth: "90vw",
+              width: 480,
+              maxWidth: "92vw",
               boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
             }}
             onClick={(e) => e.stopPropagation()}

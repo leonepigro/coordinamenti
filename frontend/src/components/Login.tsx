@@ -189,7 +189,7 @@ export default function Login({ onLogin }: { onLogin: (utente: any) => void }) {
             marginTop: 24,
           }}
         >
-          Gestione servizi domiciliari · Coordina<strong>menti</strong>
+          Gestione servizi domiciliari · Coordina<strong style={{ fontSize: "1.08em", fontStyle: "italic" }}>menti</strong>
         </div>
       </div>
     </div>

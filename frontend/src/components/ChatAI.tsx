@@ -285,7 +285,7 @@ export default function ChatAI({
                 letterSpacing: "0.04em",
               }}
             >
-              {m.ruolo === "user" ? "Paola" : <>Coordina<strong>menti</strong></>}
+              {m.ruolo === "user" ? "Paola" : <>Coordina<strong style={{ fontSize: "1.08em", fontStyle: "italic" }}>menti</strong></>}
             </div>
 
             {/* Bolla */}
@@ -405,7 +405,7 @@ export default function ChatAI({
                 letterSpacing: "0.04em",
               }}
             >
-              Coordina<strong>menti</strong>
+              Coordina<strong style={{ fontSize: "1.08em", fontStyle: "italic" }}>menti</strong>
             </div>
             <div
               style={{
@@ -511,7 +511,7 @@ export default function ChatAI({
                 letterSpacing: "0.04em",
               }}
             >
-              Coordina<strong>menti</strong>
+              Coordina<strong style={{ fontSize: "1.08em", fontStyle: "italic" }}>menti</strong>
             </div>
             <div
               style={{
