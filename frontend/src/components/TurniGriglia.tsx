@@ -916,7 +916,7 @@ function VistaGiorno({
             )}
             {candidati.length === 0 ? (
               <div style={{ fontSize: 13, color: "var(--grigio)", textAlign: "center", padding: "24px 0" }}>
-                Nessun operatore disponibile
+                Nessun operatore attivo
               </div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -931,20 +931,25 @@ function VistaGiorno({
                       alignItems: "center",
                       padding: "12px 16px",
                       borderRadius: 10,
-                      border: "1px solid var(--bordo)",
-                      background: c.inEquipe ? "var(--sabbia)" : "var(--bianco)",
+                      border: c.indisponibile ? "1px solid #F2B97F" : "1px solid var(--bordo)",
+                      background: c.indisponibile ? "#FEF8F2" : c.isPreferito ? "var(--sabbia)" : "var(--bianco)",
                       cursor: "pointer",
                       textAlign: "left",
                       width: "100%",
+                      opacity: c.indisponibile ? 0.8 : 1,
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--inchiostro)" }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: "var(--inchiostro)", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                         {c.nome}
-                        {c.inEquipe && (
-                          <span style={{ fontSize: 11, color: "var(--terra)", marginLeft: 8, fontWeight: 400 }}>
-                            equipe
-                          </span>
+                        {c.isPreferito && (
+                          <span style={{ fontSize: 11, color: "var(--terra)", fontWeight: 400 }}>equipe</span>
+                        )}
+                        {c.indisponibile && (
+                          <span style={{ fontSize: 11, color: "#C94040", fontWeight: 400 }}>⚠ indisponibile</span>
+                        )}
+                        {!c.hasSkills && (
+                          <span style={{ fontSize: 11, color: "#8A6A00", fontWeight: 400 }}>skill mancanti</span>
                         )}
                       </div>
                       <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 2 }}>

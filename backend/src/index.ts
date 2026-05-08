@@ -1688,26 +1688,30 @@ app.get("/api/interventi/:id/candidati", async (req, res) => {
     );
 
     const candidati = operatori
-      .filter((op) => !idIndisponibili.has(op.id))
-      .filter((op) => {
-        if (skillNecessarie.size === 0) return true;
+      .map((op) => {
         const skillOp = new Set(op.skills.map((s) => s.skillId));
-        return [...skillNecessarie].every((s) => skillOp.has(s));
+        const hasSkills = skillNecessarie.size === 0 || [...skillNecessarie].every((s) => skillOp.has(s));
+        return {
+          id: op.id,
+          nome: op.nome,
+          qualifica: op.qualifica,
+          isPreferito: idEquipe.has(op.id),
+          indisponibile: idIndisponibili.has(op.id),
+          hasSkills,
+          interventiOggi: carico.get(op.id)?.count ?? 0,
+          minutiOggi: carico.get(op.id)?.durata ?? 0,
+        };
       })
-      .map((op) => ({
-        id: op.id,
-        nome: op.nome,
-        qualifica: op.qualifica,
-        isPreferito: idEquipe.has(op.id),
-        interventiOggi: carico.get(op.id)?.count ?? 0,
-        minutiOggi: carico.get(op.id)?.durata ?? 0,
-      }))
       .sort((a, b) => {
+        // 1. skill OK + disponibile, 2. skill OK + indisponibile, 3. skill mancanti + disponibile, 4. skill mancanti + indisponibile
+        const scoreA = (a.hasSkills ? 0 : 2) + (a.indisponibile ? 1 : 0);
+        const scoreB = (b.hasSkills ? 0 : 2) + (b.indisponibile ? 1 : 0);
+        if (scoreA !== scoreB) return scoreA - scoreB;
         if (a.isPreferito !== b.isPreferito) return a.isPreferito ? -1 : 1;
         return a.interventiOggi - b.interventiOggi;
       });
 
-    res.json({ ok: true, candidati: candidati.slice(0, 6) });
+    res.json({ ok: true, candidati });
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e) });
   }
