@@ -248,7 +248,7 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
       return JSON.stringify(
         operatori.map((o) => ({
           id: o.id,
-          nome: o.nome,
+          etichetta: `OP${o.id}`,
           qualifica: o.qualifica,
           oreSettimanali: o.oreSettimanali,
           preferenzaTurno: o.preferenzaTurno ?? "tutti",
@@ -272,10 +272,10 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
       return JSON.stringify(
         utenti.map((u) => ({
           id: u.id,
-          nome: u.nome,
+          etichetta: `U${u.id}`,
           oreSettimanali: u.oreSettimanali,
           ...(u.note ? { note: u.note } : {}),
-          preferiti: u.operatoriPreferiti.map((p) => p.operatore.nome),
+          preferiti: u.operatoriPreferiti.map((p) => `OP${p.operatore.id}`),
           piani: u.piani.map((p) => ({
             servizio: p.tipoServizio.nome,
             giorni: p.giorniSettimana,
@@ -303,8 +303,10 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
       return JSON.stringify(
         interventi.map((i) => ({
           id: i.id,
-          utente: i.utente.nome,
-          operatore: i.operatore?.nome ?? "non assegnato",
+          utenteId: i.utente.id,
+          utente: `U${i.utente.id}`,
+          operatoreId: i.operatore?.id ?? null,
+          operatore: i.operatore ? `OP${i.operatore.id}` : "non assegnato",
           servizio: i.tipoServizio?.nome ?? "—",
           turno: i.turno,
           durata: i.durata,
@@ -361,15 +363,17 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
         .filter((c) => !args.turno || !c.preferenzaTurno || c.preferenzaTurno === args.turno)
         .map((c) => ({
           id: c.id,
-          nome: c.nome,
+          etichetta: `OP${c.id}`,
           qualifica: c.qualifica,
           preferenzaTurno: c.preferenzaTurno ?? "tutti i turni",
         }));
 
       return JSON.stringify({
-        assenteNome: assente.nome,
+        assenteId: assente.id,
+        assente: `OP${assente.id}`,
         interventiDaCoprire: interventiAssente.map((i) => ({
-          utente: i.utente.nome,
+          utenteId: i.utente.id,
+          utente: `U${i.utente.id}`,
           servizio: i.tipoServizio?.nome,
           durata: i.durata,
         })),
@@ -409,7 +413,8 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
           id: e.id,
           nome: e.nome,
           membri: e.membri.map((m) => ({
-            operatore: m.operatore.nome,
+            operatoreId: m.operatore.id,
+            operatore: `OP${m.operatore.id}`,
             qualifica: m.operatore.qualifica,
             ruolo: m.ruolo,
           })),
@@ -428,7 +433,8 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
       return JSON.stringify(
         piani.map((p) => ({
           id: p.id,
-          utente: p.utente.nome,
+          utenteId: p.utente.id,
+          utente: `U${p.utente.id}`,
           servizio: p.tipoServizio.nome,
           giorni: p.giorniSettimana,
           ora: p.oraInizio,
@@ -451,7 +457,8 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
       return JSON.stringify(
         lista.map((i) => ({
           id: i.id,
-          operatore: i.operatore.nome,
+          operatoreId: i.operatore.id,
+          operatore: `OP${i.operatore.id}`,
           data: i.data,
           motivo: i.motivo,
         })),
