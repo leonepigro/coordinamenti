@@ -189,7 +189,7 @@ export default function Login({ onLogin }: { onLogin: (utente: any) => void }) {
             marginTop: 24,
           }}
         >
-          Gestione servizi domiciliari · Coordina*menti*
+          Gestione servizi domiciliari · Coordina**menti**
         </div>
       </div>
     </div>

@@ -44,7 +44,7 @@ export default function App() {
     {
       ruolo: "ai",
       testo:
-        "Ciao Paola! 👋 Sono il tuo assistente di Coordina*menti*.\n\nPosso aiutarti a:\n• Generare e gestire i turni settimanali\n• Trovare un sostituto in caso di assenza\n• Ottimizzare i percorsi giornalieri degli operatori\n• Consultare piani assistenziali, equipe e indisponibilità\n• Darti un riepilogo rapido della settimana\n\nCosa ti serve oggi?",
+        "Ciao Paola! 👋 Sono il tuo assistente di Coordina**menti**.\n\nPosso aiutarti a:\n• Generare e gestire i turni settimanali\n• Trovare un sostituto in caso di assenza\n• Ottimizzare i percorsi giornalieri degli operatori\n• Consultare piani assistenziali, equipe e indisponibilità\n• Darti un riepilogo rapido della settimana\n\nCosa ti serve oggi?",
     },
   ]);
   const [messaggioPendente, setMessaggioPendente] = useState<string | null>(null);

@@ -285,7 +285,7 @@ export default function ChatAI({
                 letterSpacing: "0.04em",
               }}
             >
-              {m.ruolo === "user" ? "Paola" : "Coordina*menti*"}
+              {m.ruolo === "user" ? "Paola" : "Coordina**menti**"}
             </div>
 
             {/* Bolla */}
@@ -405,7 +405,7 @@ export default function ChatAI({
                 letterSpacing: "0.04em",
               }}
             >
-              Coordina*menti*
+              Coordina**menti**
             </div>
             <div
               style={{
@@ -511,7 +511,7 @@ export default function ChatAI({
                 letterSpacing: "0.04em",
               }}
             >
-              Coordina*menti*
+              Coordina**menti**
             </div>
             <div
               style={{
@@ -596,7 +596,7 @@ export default function ChatAI({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && invia()}
-            placeholder="Scrivi a Coordina*menti*..."
+            placeholder="Scrivi a Coordina**menti**..."
             style={{
               flex: 1,
               padding: "12px 18px",
