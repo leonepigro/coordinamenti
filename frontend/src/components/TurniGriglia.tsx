@@ -478,7 +478,7 @@ export default function TurniGriglia() {
                     display: "inline-block",
                   }}
                 />
-                {nome.split(" ")[1] ?? nome}
+                👤 {nome}
               </div>
             );
           })}
@@ -770,7 +770,7 @@ function VistaGiorno({
                             color: "var(--inchiostro)",
                           }}
                         >
-                          {i.utente.nome}
+                          🏠 {i.utente.nome}
                         </div>
                         <div
                           style={{
@@ -802,7 +802,7 @@ function VistaGiorno({
                         ) : (
                           <>
                             <div style={{ fontSize: 12, color: c?.color ?? "var(--grigio)", fontWeight: 500 }}>
-                              {i.operatore?.nome.split(" ")[1] ?? "—"}
+                              👤 {i.operatore?.nome ?? "—"}
                             </div>
                             <div style={{ fontSize: 11, color: "var(--grigio)", marginTop: 2 }}>{i.durata}min</div>
                             <button
@@ -1025,7 +1025,7 @@ function VistaSettimana({
                         flexShrink: 0,
                       }}
                     />
-                    {nomeOp.split(" ").slice(0, 2).join(" ")}
+                    👤 {nomeOp}
                   </div>
                 </td>
                 {giorni.map((giorno) => {
@@ -1065,7 +1065,7 @@ function VistaSettimana({
                             {i.tipoServizio?.nome ?? "—"}
                           </div>
                           <div style={{ opacity: 0.75 }}>
-                            {i.utente.nome.split(" ").slice(-1)[0]}
+                            🏠 {i.utente.nome}
                           </div>
                         </div>
                       ))}
@@ -1118,7 +1118,7 @@ function VistaSettimana({
                         }}
                       >
                         <div style={{ fontWeight: 500 }}>{i.tipoServizio?.nome ?? "—"}</div>
-                        <div style={{ opacity: 0.75 }}>{i.utente.nome.split(" ").slice(-1)[0]}</div>
+                        <div style={{ opacity: 0.75 }}>🏠 {i.utente.nome}</div>
                       </div>
                     ))}
                     {scoperti.length === 0 && (
@@ -1246,7 +1246,7 @@ function VistaMese({
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {i.operatore?.nome.split(" ")[1] ?? "—"}
+                    👤 {i.operatore?.nome ?? "—"}
                   </div>
                 );
               })}
