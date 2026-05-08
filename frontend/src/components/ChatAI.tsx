@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { chat, briefing as apiBriefing, feedbackAI } from "../api/client";
+import { chat, briefing as apiBriefing, feedbackAI, operatori as apiOperatori, utenti as apiUtenti } from "../api/client";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import ReactMarkdown from "react-markdown";
@@ -35,6 +35,7 @@ export default function ChatAI({
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<Record<number, 1 | -1>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
+  const mapaIdRef = useRef<Record<string, string>>({});
 
   const [reasoning, setReasoning] = useState<
     { tipo: string; testo: string; nome?: string }[]
@@ -42,6 +43,15 @@ export default function ChatAI({
   const [reasoningAttivo, setReasoningAttivo] = useState(false);
 
   const briefingCaricatoRef = useRef(false);
+
+  useEffect(() => {
+    Promise.all([apiOperatori.lista(), apiUtenti.lista()]).then(([resOp, resUt]) => {
+      const mappa: Record<string, string> = {};
+      (resOp.data ?? []).forEach((o: any) => { mappa[`OP${o.id}`] = o.nome; });
+      (resUt.data ?? []).forEach((u: any) => { mappa[`U${u.id}`] = u.nome; });
+      mapaIdRef.current = mappa;
+    }).catch(() => {/* silenzioso */});
+  }, []);
 
   useEffect(() => {
     if (!briefingCaricatoRef.current && messaggi.length <= 1) {
@@ -64,6 +74,12 @@ export default function ChatAI({
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messaggi, reasoning]);
+
+  function deanonimizza(testo: string): string {
+    return testo
+      .replace(/\bOP(\d+)\b/g, (_, id) => mapaIdRef.current[`OP${id}`] ?? `OP${id}`)
+      .replace(/\bU(\d+)\b/g, (_, id) => mapaIdRef.current[`U${id}`] ?? `U${id}`);
+  }
 
   async function caricaBriefing() {
     try {
@@ -327,7 +343,7 @@ export default function ChatAI({
                     ),
                   }}
                 >
-                  {m.testo}
+                  {deanonimizza(m.testo)}
                 </ReactMarkdown>
               )}
             </div>
