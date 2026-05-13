@@ -99,7 +99,7 @@ export default function Equipe() {
                   {eq.nome}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 3 }}>
-                  {eq.membri.length} membro{eq.membri.length !== 1 ? "i" : ""}
+                  {eq.membri.length} membro/i
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
