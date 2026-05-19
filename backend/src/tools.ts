@@ -99,6 +99,20 @@ export const toolDefinitions = [
   {
     type: "function" as const,
     function: {
+      name: "cerca_operatore",
+      description: "Cerca un operatore per nome (o parte del nome) e restituisce il suo ID numerico. Usare SEMPRE quando il coordinatore menziona un operatore per nome, prima di chiamare trova_sostituto o altri tool che richiedono operatoreId.",
+      parameters: {
+        type: "object",
+        properties: {
+          nome: { type: "string", description: "Nome o cognome parziale dell'operatore da cercare" },
+        },
+        required: ["nome"],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
       name: "get_skill",
       description: "Restituisce tutte le skill disponibili nel sistema.",
       parameters: { type: "object", properties: {} },
@@ -379,6 +393,15 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
         })),
         candidati: idonei.slice(0, 3),
       });
+    }
+
+    case "cerca_operatore": {
+      const risultati = await prisma.operatore.findMany({
+        where: { attivo: true, nome: { contains: args.nome, mode: "insensitive" } },
+        select: { id: true, qualifica: true },
+      });
+      if (risultati.length === 0) return JSON.stringify({ errore: `Nessun operatore trovato con nome "${args.nome}"` });
+      return JSON.stringify(risultati.map((o) => ({ id: o.id, etichetta: `OP${o.id}`, qualifica: o.qualifica })));
     }
 
     case "get_skill": {

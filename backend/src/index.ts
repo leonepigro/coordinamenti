@@ -1330,6 +1330,7 @@ app.post("/api/chat/stream", async (req, res) => {
           get_piani_assistenziali: "Consultando i piani assistenziali...",
           get_indisponibilita: "Verificando le indisponibilità...",
           get_statistiche: "Calcolando le statistiche settimanali...",
+          cerca_operatore: "Cercando l'operatore...",
         };
 
         invia("tool", {
