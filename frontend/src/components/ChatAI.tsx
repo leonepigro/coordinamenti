@@ -45,12 +45,13 @@ export default function ChatAI({
   const briefingCaricatoRef = useRef(false);
 
   useEffect(() => {
-    Promise.all([apiOperatori.lista(), apiUtenti.lista()]).then(([resOp, resUt]) => {
-      const mappa: Record<string, string> = {};
-      (resOp.data ?? []).forEach((o: any) => { mappa[`OP${o.id}`] = o.nome; });
-      (resUt.data ?? []).forEach((u: any) => { mappa[`U${u.id}`] = u.nome; });
-      mapaIdRef.current = mappa;
-    }).catch(() => {/* silenzioso */});
+    Promise.all([apiOperatori.lista(), apiUtenti.lista(), apiOperatori.archiviati(), apiUtenti.archiviati()])
+      .then(([resOp, resUt, resOpArch, resUtArch]) => {
+        const mappa: Record<string, string> = {};
+        [...(resOp.data ?? []), ...(resOpArch.data ?? [])].forEach((o: { id: number; nome: string }) => { mappa[`OP${o.id}`] = o.nome; });
+        [...(resUt.data ?? []), ...(resUtArch.data ?? [])].forEach((u: { id: number; nome: string }) => { mappa[`U${u.id}`] = u.nome; });
+        mapaIdRef.current = mappa;
+      }).catch(() => {});
   }, []);
 
   useEffect(() => {

@@ -368,30 +368,30 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
         include: { skills: true },
       });
 
-      const idonei = candidati
-        .filter((c) => !idIndisponibili.has(c.id))
-        .filter((c) => {
-          const skillC = new Set(c.skills.map((s) => s.skillId));
-          return [...skillNecessarie].every((s) => skillC.has(s));
-        })
-        .filter((c) => !args.turno || !c.preferenzaTurno || c.preferenzaTurno === args.turno)
-        .map((c) => ({
-          id: c.id,
+      const valutati = candidati.map((c) => {
+        const disponibile = !idIndisponibili.has(c.id);
+        const skillC = new Set(c.skills.map((s) => s.skillId));
+        const skillOk = skillNecessarie.size === 0 || [...skillNecessarie].every((s) => skillC.has(s));
+        const turnoOk = !args.turno || !c.preferenzaTurno || c.preferenzaTurno === args.turno;
+        const punteggio = (disponibile ? 2 : 0) + (skillOk ? 1 : 0);
+        return {
           etichetta: `OP${c.id}`,
           qualifica: c.qualifica,
-          preferenzaTurno: c.preferenzaTurno ?? "tutti i turni",
-        }));
+          disponibile,
+          skillOk,
+          turnoOk,
+          punteggio,
+        };
+      }).sort((a, b) => b.punteggio - a.punteggio);
 
       return JSON.stringify({
-        assenteId: assente.id,
         assente: `OP${assente.id}`,
         interventiDaCoprire: interventiAssente.map((i) => ({
-          utenteId: i.utente.id,
           utente: `U${i.utente.id}`,
           servizio: i.tipoServizio?.nome,
           durata: i.durata,
         })),
-        candidati: idonei.slice(0, 3),
+        candidati: valutati,
       });
     }
 
