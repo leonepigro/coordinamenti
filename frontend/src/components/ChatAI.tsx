@@ -45,13 +45,21 @@ export default function ChatAI({
   const briefingCaricatoRef = useRef(false);
 
   useEffect(() => {
-    Promise.all([apiOperatori.lista(), apiUtenti.lista(), apiOperatori.archiviati(), apiUtenti.archiviati()])
+    Promise.allSettled([apiOperatori.lista(), apiUtenti.lista(), apiOperatori.archiviati(), apiUtenti.archiviati()])
       .then(([resOp, resUt, resOpArch, resUtArch]) => {
         const mappa: Record<string, string> = {};
-        [...(resOp.data ?? []), ...(resOpArch.data ?? [])].forEach((o: { id: number; nome: string }) => { mappa[`OP${o.id}`] = o.nome; });
-        [...(resUt.data ?? []), ...(resUtArch.data ?? [])].forEach((u: { id: number; nome: string }) => { mappa[`U${u.id}`] = u.nome; });
+        const ops = [
+          ...((resOp.status === "fulfilled" ? resOp.value.data : null) ?? []),
+          ...((resOpArch.status === "fulfilled" ? resOpArch.value.data : null) ?? []),
+        ];
+        const uts = [
+          ...((resUt.status === "fulfilled" ? resUt.value.data : null) ?? []),
+          ...((resUtArch.status === "fulfilled" ? resUtArch.value.data : null) ?? []),
+        ];
+        ops.forEach((o: { id: number; nome: string }) => { mappa[`OP${o.id}`] = o.nome; });
+        uts.forEach((u: { id: number; nome: string }) => { mappa[`U${u.id}`] = u.nome; });
         mapaIdRef.current = mappa;
-      }).catch(() => {});
+      });
   }, []);
 
   useEffect(() => {
@@ -89,7 +97,7 @@ export default function ChatAI({
       let testo = `Buongiorno Paola! Ecco il briefing di oggi — ${b.data}.\n\n`;
       if (b.indisponibili.length > 0) {
         testo += `⚠️ Operatori assenti oggi:\n`;
-        b.indisponibili.forEach((i: any) => {
+        b.indisponibili.forEach((i: { nome: string; motivo?: string }) => {
           testo += `• ${i.nome}${i.motivo ? ` (${i.motivo})` : ""}\n`;
         });
         testo += "\n";
@@ -109,7 +117,7 @@ export default function ChatAI({
       testo += `• ${b.operatoriAttivi} operatori · ${b.utentiAttivi} utenti in carico\n`;
       if (b.sovraccarichi.length > 0) {
         testo += `\n⚠️ Operatori in sovraccarico:\n`;
-        b.sovraccarichi.forEach((s: any) => {
+        b.sovraccarichi.forEach((s: { nome: string; oreUsate: number; oreMax: number }) => {
           testo += `• ${s.nome}: ${s.oreUsate}h su ${s.oreMax}h\n`;
         });
       }

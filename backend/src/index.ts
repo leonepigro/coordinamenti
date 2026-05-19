@@ -406,6 +406,14 @@ app.post("/api/operatori", async (req, res) => {
   res.json(operatore);
 });
 
+app.get("/api/operatori/archiviati", async (req, res) => {
+  const lista = await prisma.operatore.findMany({
+    where: { attivo: false },
+    orderBy: { dataArchiviazione: "desc" },
+  });
+  res.json(lista);
+});
+
 app.put("/api/operatori/:id", async (req, res) => {
   const id = parseInt(req.params.id);
   const {
@@ -486,14 +494,6 @@ app.delete("/api/operatori/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/operatori/archiviati", async (req, res) => {
-  const lista = await prisma.operatore.findMany({
-    where: { attivo: false },
-    orderBy: { dataArchiviazione: "desc" },
-  });
-  res.json(lista);
-});
-
 app.put("/api/operatori/:id/ripristina", async (req, res) => {
   await prisma.operatore.update({
     where: { id: parseInt(req.params.id) },
@@ -534,6 +534,15 @@ app.post("/api/utenti", async (req, res) => {
     include: { piani: { include: { tipoServizio: { include: { skills: true } }, skills: { include: { skill: true } } } }, commessa: true },
   });
   res.json(utente);
+});
+
+app.get("/api/utenti/archiviati", async (req, res) => {
+  const lista = await prisma.utente.findMany({
+    where: { attivo: false },
+    orderBy: { dataArchiviazione: "desc" },
+    select: { id: true, nome: true, indirizzo: true, dataArchiviazione: true, motivoArchiviazione: true, createdAt: true },
+  });
+  res.json(lista);
 });
 
 app.put("/api/utenti/:id", async (req, res) => {
@@ -578,15 +587,6 @@ app.delete("/api/utenti/:id", async (req, res) => {
     data: { attivo: false, dataArchiviazione: new Date(), motivoArchiviazione: motivo ?? null },
   });
   res.json({ ok: true });
-});
-
-app.get("/api/utenti/archiviati", async (req, res) => {
-  const lista = await prisma.utente.findMany({
-    where: { attivo: false },
-    orderBy: { dataArchiviazione: "desc" },
-    select: { id: true, nome: true, indirizzo: true, dataArchiviazione: true, motivoArchiviazione: true, createdAt: true },
-  });
-  res.json(lista);
 });
 
 app.put("/api/utenti/:id/ripristina", async (req, res) => {
@@ -1249,8 +1249,16 @@ Hai accesso ai seguenti strumenti:
 - invia_email_riepilogo: invia riepilogo giornaliero agli operatori via email
 - invia_email_aggiornamento: invia aggiornamento pianificazione per un periodo
 
+REGOLA ASSOLUTA — USO DEI TOOL:
+Qualsiasi domanda su turni, operatori, utenti, pianificazione o dati RICHIEDE obbligatoriamente la chiamata al tool corrispondente PRIMA di rispondere:
+- Turni di un giorno specifico → get_interventi_giorno (OBBLIGATORIO, non rispondere senza)
+- Lista operatori o utenti → get_operatori / get_utenti
+- Sostituto per un assente → cerca_operatore poi trova_sostituto (NON usare get_operatori)
+- Statistiche settimanali → get_statistiche
+Rispondere senza aver chiamato il tool = risposta inventata = VIETATO.
+
 Regole operative:
-- Usa sempre i tool per rispondere a domande sui dati — non inventare mai nomi, numeri o situazioni
+- Non inventare mai nomi, numeri, orari o situazioni: usa solo i dati restituiti dai tool
 - Se viene chiesto di generare turni senza specificare le date, chiedi il periodo desiderato
 - Se trovi un operatore assente con interventi assegnati, proponi subito i sostituti
 - Segnala quando un utente non ha copertura o un operatore supera le ore contrattuali
@@ -1287,16 +1295,20 @@ app.post("/api/chat/stream", async (req, res) => {
 
     let currentMessages = [...messages];
     let maxSteps = 5;
+    let primoStep = true;
 
     invia("stato", { testo: "Sto analizzando la tua richiesta..." });
 
     while (maxSteps-- > 0) {
+      const toolChoice = primoStep ? "required" : "auto";
+      primoStep = false;
       let { res: completion } = await chatWithFallback({
         messages: [
           { role: "system", content: systemPrompt },
           ...currentMessages,
         ],
         tools: toolDefinitions,
+        tool_choice: toolChoice,
       });
 
       const choice = completion.choices[0];
