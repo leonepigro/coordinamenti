@@ -2009,6 +2009,7 @@ async function chatWithFallback(params: any) {
     console.log("✅ Risposta da Groq");
     return { res, provider: "groq" };
   } catch (err: any) {
+    console.error("[Groq] errore dettaglio:", err?.status, err?.message, JSON.stringify(err?.error ?? err?.body ?? {}));
     const desc = categorizzaErroreAI("Groq", err);
     console.warn("🔴", desc);
     falliti.push(desc);
