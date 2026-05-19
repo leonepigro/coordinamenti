@@ -6,6 +6,7 @@ import ImportExcel from "./ImportExcel";
 
 interface Piano {
   tipoServizio: { nome: string; durata: number };
+  durata?: number | null;
   giorniSettimana: string;
   oraInizio: string;
 }
@@ -480,7 +481,7 @@ export default function Utenti() {
                                   marginLeft: "auto",
                                 }}
                               >
-                                {p.tipoServizio.durata}min
+                                {p.durata ?? p.tipoServizio.durata}min
                               </span>
                             </div>
                           );
