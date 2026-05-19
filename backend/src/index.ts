@@ -478,9 +478,26 @@ app.put("/api/operatori/:id", async (req, res) => {
 });
 
 app.delete("/api/operatori/:id", async (req, res) => {
+  const { motivo } = req.body ?? {};
   await prisma.operatore.update({
     where: { id: parseInt(req.params.id) },
-    data: { attivo: false },
+    data: { attivo: false, dataArchiviazione: new Date(), motivoArchiviazione: motivo ?? null },
+  });
+  res.json({ ok: true });
+});
+
+app.get("/api/operatori/archiviati", async (req, res) => {
+  const lista = await prisma.operatore.findMany({
+    where: { attivo: false },
+    orderBy: { dataArchiviazione: "desc" },
+  });
+  res.json(lista);
+});
+
+app.put("/api/operatori/:id/ripristina", async (req, res) => {
+  await prisma.operatore.update({
+    where: { id: parseInt(req.params.id) },
+    data: { attivo: true, dataArchiviazione: null, motivoArchiviazione: null },
   });
   res.json({ ok: true });
 });
@@ -555,9 +572,27 @@ app.put("/api/utenti/:id", async (req, res) => {
 });
 
 app.delete("/api/utenti/:id", async (req, res) => {
+  const { motivo } = req.body ?? {};
   await prisma.utente.update({
     where: { id: parseInt(req.params.id) },
-    data: { attivo: false },
+    data: { attivo: false, dataArchiviazione: new Date(), motivoArchiviazione: motivo ?? null },
+  });
+  res.json({ ok: true });
+});
+
+app.get("/api/utenti/archiviati", async (req, res) => {
+  const lista = await prisma.utente.findMany({
+    where: { attivo: false },
+    orderBy: { dataArchiviazione: "desc" },
+    select: { id: true, nome: true, indirizzo: true, dataArchiviazione: true, motivoArchiviazione: true, createdAt: true },
+  });
+  res.json(lista);
+});
+
+app.put("/api/utenti/:id/ripristina", async (req, res) => {
+  await prisma.utente.update({
+    where: { id: parseInt(req.params.id) },
+    data: { attivo: true, dataArchiviazione: null, motivoArchiviazione: null },
   });
   res.json({ ok: true });
 });

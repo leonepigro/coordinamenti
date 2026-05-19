@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { utenti as apiUtenti } from "../api/client";
 import ModalUtente from "./ModalUtente";
 import ModalOperatoriPreferiti from "./ModalOperatoriPreferiti";
+import ModalArchivia from "./ModalArchivia";
 import ImportExcel from "./ImportExcel";
 
 interface Piano {
@@ -27,13 +28,7 @@ interface Utente {
 const PER_PAGINA = 25;
 
 const GIORNI_LABEL: Record<string, string> = {
-  "0": "Dom",
-  "1": "Lun",
-  "2": "Mar",
-  "3": "Mer",
-  "4": "Gio",
-  "5": "Ven",
-  "6": "Sab",
+  "0": "Dom", "1": "Lun", "2": "Mar", "3": "Mer", "4": "Gio", "5": "Ven", "6": "Sab",
 };
 
 export default function Utenti() {
@@ -48,6 +43,9 @@ export default function Utenti() {
   const [pagina, setPagina] = useState(1);
   const [espanso, setEspanso] = useState<number | null>(null);
   const [mostraImport, setMostraImport] = useState(false);
+  const [archiviaTarget, setArchiviaTarget] = useState<Utente | null>(null);
+  const [mostraArchiviati, setMostraArchiviati] = useState(false);
+  const [listaArchiviati, setListaArchiviati] = useState<any[]>([]);
 
   async function carica() {
     const res = await apiUtenti.lista();
@@ -55,28 +53,28 @@ export default function Utenti() {
     setLoading(false);
   }
 
-  useEffect(() => {
+  async function caricaArchiviati() {
+    const res = await apiUtenti.archiviati();
+    setListaArchiviati(res.data);
+  }
+
+  useEffect(() => { carica(); }, []);
+  useEffect(() => { if (mostraArchiviati) caricaArchiviati(); }, [mostraArchiviati]);
+
+  function apriNuovo() { setSelezionato(null); setModalUtente(true); }
+  function apriModifica(u: any) { setSelezionato(u); setModalUtente(true); }
+  function apriPreferiti(u: Utente) { setUtentePreferiti(u); setModalPreferiti(true); }
+
+  async function archivia(motivo: string) {
+    if (!archiviaTarget) return;
+    await apiUtenti.archivia(archiviaTarget.id, motivo);
+    setArchiviaTarget(null);
     carica();
-  }, []);
-
-  function apriNuovo() {
-    setSelezionato(null);
-    setModalUtente(true);
-  }
-  function apriModifica(u: any) {
-    setSelezionato(u);
-    setModalUtente(true);
   }
 
-  function apriPreferiti(u: Utente) {
-    setUtentePreferiti(u);
-    setModalPreferiti(true);
-  }
-
-  async function elimina(id: number) {
-    if (!confirm("Disattivare questo utente?")) return;
-    await apiUtenti.elimina(id);
-    carica();
+  async function ripristina(id: number) {
+    await apiUtenti.ripristina(id);
+    caricaArchiviati();
   }
 
   const commesse = Array.from(new Set(lista.map((u) => u.commessa?.nome).filter(Boolean))) as string[];
@@ -92,472 +90,234 @@ export default function Utenti() {
   const totalePagine = Math.ceil(listaFiltrata.length / PER_PAGINA);
   const listaPaginata = listaFiltrata.slice((pagina - 1) * PER_PAGINA, pagina * PER_PAGINA);
 
-  function aggiornFiltro(fn: () => void) {
-    fn();
-    setPagina(1);
-  }
+  function aggiornFiltro(fn: () => void) { fn(); setPagina(1); }
 
   if (loading)
-    return (
-      <div style={{ padding: 32, color: "var(--grigio)", fontSize: 14 }}>
-        Caricamento...
-      </div>
-    );
+    return <div style={{ padding: 32, color: "var(--grigio)", fontSize: 14 }}>Caricamento...</div>;
 
   return (
-    <div
-      className="cm-page" style={{ padding: 32, background: "var(--bianco)", minHeight: "100vh" }}
-    >
+    <div className="cm-page" style={{ padding: 32, background: "var(--bianco)", minHeight: "100vh" }}>
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 24,
-        }}
-      >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <div>
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 500,
-              color: "var(--inchiostro)",
-              margin: 0,
-            }}
-          >
-            Utenti
-          </h1>
-          <p
-            style={{ fontSize: 13, color: "var(--grigio)", margin: "4px 0 0" }}
-          >
+          <h1 style={{ fontSize: 22, fontWeight: 500, color: "var(--inchiostro)", margin: 0 }}>Utenti</h1>
+          <p style={{ fontSize: 13, color: "var(--grigio)", margin: "4px 0 0" }}>
             {listaFiltrata.length === lista.length
-            ? `${lista.length} utenti in carico`
-            : `${listaFiltrata.length} di ${lista.length} utenti`}
+              ? `${lista.length} utenti in carico`
+              : `${listaFiltrata.length} di ${lista.length} utenti`}
           </p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          <button
-            onClick={() => setMostraImport(true)}
-            style={btnSecondarioStyle}
-          >
-            ↑ Importa Excel
-          </button>
-          <button onClick={apriNuovo} style={btnPrimarioStyle}>
-            + Nuovo utente
-          </button>
+          <button onClick={() => setMostraImport(true)} style={btnSecondarioStyle}>↑ Importa Excel</button>
+          <button onClick={apriNuovo} style={btnPrimarioStyle}>+ Nuovo utente</button>
         </div>
       </div>
 
-      {/* Filtri */}
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
-        <input
-          value={filtro}
-          onChange={(e) => aggiornFiltro(() => setFiltro(e.target.value))}
-          placeholder="Cerca per nome o indirizzo..."
-          style={{
-            flex: "1 1 220px",
-            maxWidth: 320,
-            padding: "9px 14px",
-            border: "1px solid var(--bordo)",
-            borderRadius: 10,
-            fontSize: 13,
-            outline: "none",
-            background: "var(--bianco)",
-            color: "var(--inchiostro)",
-          }}
-          onFocus={(e) => (e.target.style.borderColor = "var(--terra)")}
-          onBlur={(e) => (e.target.style.borderColor = "var(--bordo)")}
-        />
-        {commesse.length > 0 && (
-          <select
-            value={filtroCommessa}
-            onChange={(e) => aggiornFiltro(() => setFiltroCommessa(e.target.value))}
-            style={{
-              padding: "9px 14px",
-              border: "1px solid var(--bordo)",
-              borderRadius: 10,
-              fontSize: 13,
-              outline: "none",
-              background: "var(--bianco)",
-              color: filtroCommessa ? "var(--inchiostro)" : "var(--grigio)",
-              cursor: "pointer",
-            }}
-          >
-            <option value="">Tutti i servizi</option>
-            {commesse.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        )}
-      </div>
-
-      {/* Lista */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {listaPaginata.map((u) => {
-          const aperto = espanso === u.id;
+      {/* Tab Attivi / Archiviati */}
+      <div style={{ display: "flex", gap: 4, marginBottom: 20, borderBottom: "1px solid var(--bordo)" }}>
+        {(["attivi", "archiviati"] as const).map((tab) => {
+          const attivo = (tab === "archiviati") === mostraArchiviati;
           return (
-            <div
-              key={u.id}
+            <button
+              key={tab}
+              onClick={() => setMostraArchiviati(tab === "archiviati")}
               style={{
-                border: "1px solid var(--bordo)",
-                borderRadius: 14,
-                background: "var(--bianco)",
-                overflow: "hidden",
-                transition: "border-color 0.15s",
+                padding: "7px 16px", fontSize: 13, border: "none", background: "none", cursor: "pointer",
+                color: attivo ? "var(--terra)" : "var(--grigio)",
+                fontWeight: attivo ? 600 : 400,
+                borderBottom: attivo ? "2px solid var(--terra)" : "2px solid transparent",
+                marginBottom: -1,
               }}
             >
-              {/* Header card */}
-              <div
-                onClick={() => setEspanso(aperto ? null : u.id)}
-                style={{
-                  padding: "16px 20px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  background: aperto ? "var(--sabbia)" : "var(--bianco)",
-                  transition: "background 0.15s",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 14,
-                    flex: 1,
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 10,
-                      flexShrink: 0,
-                      background: "var(--terra-light)",
-                      color: "var(--terra-dark)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 14,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {u.nome
-                      .split(" ")
-                      .filter((n) => n.length > 2)
-                      .map((n) => n[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase()}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        fontWeight: 500,
-                        fontSize: 14,
-                        color: "var(--inchiostro)",
-                      }}
-                    >
-                      {u.nome}
-                    </div>
-                    <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
-                      <span>📍 {u.indirizzo}</span>
-                      <span style={{
-                        fontSize: 10,
-                        padding: "1px 6px",
-                        borderRadius: 8,
-                        fontWeight: 500,
-                        background: u.lat ? "#ECFDF5" : "#FFF7ED",
-                        color: u.lat ? "#16a34a" : "#ea580c",
-                        border: `1px solid ${u.lat ? "#86efac" : "#fdba74"}`,
-                        whiteSpace: "nowrap",
-                      }}>
-                        {u.lat ? "geo ✓" : "no geo"}
-                      </span>
-                    </div>
-                    {u.commessa && (
-                      <div style={{ marginTop: 4 }}>
-                        <span style={{
-                          fontSize: 10,
-                          padding: "2px 8px",
-                          borderRadius: 10,
-                          background: "var(--salvia-light)",
-                          color: "var(--salvia-dark)",
-                          border: "1px solid var(--salvia-dark)33",
-                          fontWeight: 500,
-                        }}>
-                          {u.commessa.nome}
-                        </span>
-                      </div>
-                    )}
-                    {u.piani.length > 0 && (
-                      <div
-                        style={{
-                          display: "flex",
-                          flexWrap: "wrap",
-                          gap: 4,
-                          marginTop: 6,
-                        }}
-                      >
-                        {u.piani.map((p, idx) => {
-                          const giorni = p.giorniSettimana
-                            .split(",")
-                            .map((g) => GIORNI_LABEL[g] ?? g)
-                            .join(" ");
-                          return (
-                            <span
-                              key={idx}
-                              style={{
-                                fontSize: 10,
-                                padding: "2px 8px",
-                                borderRadius: 10,
-                                background: "var(--sabbia)",
-                                color: "var(--inchiostro)",
-                                border: "1px solid var(--bordo)",
-                                opacity: 0.85,
-                              }}
-                            >
-                              {p.tipoServizio.nome} · {giorni} {p.oraInizio}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 10 }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 11,
-                        padding: "3px 10px",
-                        borderRadius: 20,
-                        background: "var(--terra-light)",
-                        color: "var(--terra-dark)",
-                        border: "1px solid var(--terra)33",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {u.oreSettimanali}h/sett.
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 12,
-                        color: "var(--grigio)",
-                        marginRight: 4,
-                      }}
-                    >
-                      {aperto ? "▲" : "▼"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Azioni */}
-                <div
-                  style={{ display: "flex", gap: 6, marginLeft: 14 }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    onClick={() => apriPreferiti(u)}
-                    style={{
-                      ...btnSmallStyle,
-                      color: u.operatoriPreferiti.length > 0 ? "var(--terra-dark)" : undefined,
-                      borderColor: u.operatoriPreferiti.length > 0 ? "var(--terra)" : undefined,
-                    }}
-                    title="Operatori preferiti"
-                  >
-                    Operatori {u.operatoriPreferiti.length > 0 ? `(${u.operatoriPreferiti.length})` : ""}
-                  </button>
-                  <button onClick={() => apriModifica(u)} style={btnSmallStyle}>
-                    Modifica
-                  </button>
-                  <button
-                    onClick={() => elimina(u.id)}
-                    style={{
-                      ...btnSmallStyle,
-                      color: "#A0522D",
-                      borderColor: "#E8C4A8",
-                    }}
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-
-              {/* Dettaglio espanso */}
-              {aperto && (
-                <div
-                  style={{
-                    padding: "0 20px 16px",
-                    borderTop: "1px solid var(--bordo)",
-                  }}
-                >
-                  {u.note && (
-                    <div
-                      style={{
-                        margin: "14px 0 10px",
-                        padding: "10px 14px",
-                        borderRadius: 8,
-                        background: "var(--sabbia)",
-                        fontSize: 12,
-                        color: "var(--inchiostro-light)",
-                        fontStyle: "italic",
-                        borderLeft: "3px solid var(--terra)",
-                      }}
-                    >
-                      {u.note}
-                    </div>
-                  )}
-
-                  {/* Piano assistenziale */}
-                  {u.piani.length > 0 && (
-                    <div style={{ marginTop: u.note ? 0 : 14 }}>
-                      <div
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 500,
-                          color: "var(--grigio)",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                          marginBottom: 8,
-                        }}
-                      >
-                        Piano assistenziale
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: 6,
-                        }}
-                      >
-                        {u.piani.map((p, idx) => {
-                          const giorni = p.giorniSettimana
-                            .split(",")
-                            .map((g) => GIORNI_LABEL[g] ?? g)
-                            .join(", ");
-                          return (
-                            <div
-                              key={idx}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                padding: "8px 12px",
-                                borderRadius: 8,
-                                background: "var(--bianco)",
-                                border: "1px solid var(--bordo)",
-                                fontSize: 12,
-                              }}
-                            >
-                              <span
-                                style={{
-                                  padding: "2px 8px",
-                                  borderRadius: 6,
-                                  fontSize: 11,
-                                  background: "var(--salvia-light)",
-                                  color: "var(--salvia-dark)",
-                                  fontWeight: 500,
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {p.tipoServizio.nome}
-                              </span>
-                              <span
-                                style={{ color: "var(--inchiostro-light)" }}
-                              >
-                                {giorni}
-                              </span>
-                              <span style={{ color: "var(--grigio)" }}>·</span>
-                              <span
-                                style={{ color: "var(--inchiostro-light)" }}
-                              >
-                                {p.oraInizio}
-                              </span>
-                              <span
-                                style={{
-                                  color: "var(--grigio)",
-                                  marginLeft: "auto",
-                                }}
-                              >
-                                {p.durata ?? p.tipoServizio.durata}min
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Operatori preferiti */}
-                  {u.operatoriPreferiti.length > 0 && (
-                    <div style={{ marginTop: 14 }}>
-                      <div style={{ fontSize: 11, fontWeight: 500, color: "var(--grigio)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>
-                        Operatori preferiti
-                      </div>
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                        {u.operatoriPreferiti.map((p) => (
-                          <span key={p.operatoreId} style={{
-                            padding: "4px 10px",
-                            borderRadius: 8,
-                            background: "var(--terra-light)",
-                            border: "1px solid var(--terra)33",
-                            fontSize: 12,
-                            fontWeight: 500,
-                            color: "var(--terra-dark)",
-                          }}>
-                            {p.operatore.nome}
-                            <span style={{ fontSize: 11, opacity: 0.7, marginLeft: 5 }}>{p.operatore.qualifica}</span>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-              )}
-            </div>
+              {tab === "attivi" ? "Attivi" : "Archiviati"}
+            </button>
           );
         })}
       </div>
 
-      {listaFiltrata.length === 0 && (
-        <div style={{ textAlign: "center", padding: "48px 0", color: "var(--grigio)", fontSize: 14 }}>
-          Nessun utente trovato
+      {/* Vista archiviati */}
+      {mostraArchiviati && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {listaArchiviati.length === 0 ? (
+            <div style={{ fontSize: 13, color: "var(--grigio)", textAlign: "center", padding: "48px 0" }}>
+              Nessun utente archiviato
+            </div>
+          ) : listaArchiviati.map((u: any) => (
+            <div key={u.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderRadius: 10, border: "1px solid var(--bordo)", background: "var(--sabbia)" }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 500, color: "var(--inchiostro)" }}>{u.nome}</div>
+                <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 2 }}>
+                  {u.motivoArchiviazione ?? "motivo non specificato"}
+                  {u.dataArchiviazione && ` · ${new Date(u.dataArchiviazione).toLocaleDateString("it-IT")}`}
+                </div>
+              </div>
+              <button
+                onClick={() => ripristina(u.id)}
+                style={{ padding: "6px 14px", borderRadius: 8, border: "1px solid var(--bordo)", background: "var(--bianco)", fontSize: 12, cursor: "pointer", color: "var(--inchiostro-light)" }}
+              >
+                Ripristina
+              </button>
+            </div>
+          ))}
         </div>
       )}
 
-      {/* Paginazione */}
-      {totalePagine > 1 && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 24 }}>
-          <button
-            onClick={() => setPagina((p) => Math.max(1, p - 1))}
-            disabled={pagina === 1}
-            style={{ ...btnSecondarioStyle, opacity: pagina === 1 ? 0.4 : 1 }}
-          >
-            ← Precedente
-          </button>
-          <span style={{ fontSize: 13, color: "var(--grigio)" }}>
-            Pagina {pagina} di {totalePagine} · {listaFiltrata.length} utenti
-          </span>
-          <button
-            onClick={() => setPagina((p) => Math.min(totalePagine, p + 1))}
-            disabled={pagina === totalePagine}
-            style={{ ...btnSecondarioStyle, opacity: pagina === totalePagine ? 0.4 : 1 }}
-          >
-            Successiva →
-          </button>
-        </div>
+      {/* Vista attivi */}
+      {!mostraArchiviati && (
+        <>
+          {/* Filtri */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+            <input
+              value={filtro}
+              onChange={(e) => aggiornFiltro(() => setFiltro(e.target.value))}
+              placeholder="Cerca per nome o indirizzo..."
+              style={{ flex: "1 1 220px", maxWidth: 320, padding: "9px 14px", border: "1px solid var(--bordo)", borderRadius: 10, fontSize: 13, outline: "none", background: "var(--bianco)", color: "var(--inchiostro)" }}
+              onFocus={(e) => (e.target.style.borderColor = "var(--terra)")}
+              onBlur={(e) => (e.target.style.borderColor = "var(--bordo)")}
+            />
+            {commesse.length > 0 && (
+              <select
+                value={filtroCommessa}
+                onChange={(e) => aggiornFiltro(() => setFiltroCommessa(e.target.value))}
+                style={{ padding: "9px 14px", border: "1px solid var(--bordo)", borderRadius: 10, fontSize: 13, outline: "none", background: "var(--bianco)", color: filtroCommessa ? "var(--inchiostro)" : "var(--grigio)", cursor: "pointer" }}
+              >
+                <option value="">Tutti i servizi</option>
+                {commesse.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            )}
+          </div>
+
+          {/* Lista */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {listaPaginata.map((u) => {
+              const aperto = espanso === u.id;
+              return (
+                <div key={u.id} style={{ border: "1px solid var(--bordo)", borderRadius: 14, background: "var(--bianco)", overflow: "hidden", transition: "border-color 0.15s" }}>
+                  {/* Header card */}
+                  <div
+                    onClick={() => setEspanso(aperto ? null : u.id)}
+                    style={{ padding: "16px 20px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", background: aperto ? "var(--sabbia)" : "var(--bianco)", transition: "background 0.15s" }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: "var(--terra-light)", color: "var(--terra-dark)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 600 }}>
+                        {u.nome.split(" ").filter((n) => n.length > 2).map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 500, fontSize: 14, color: "var(--inchiostro)" }}>{u.nome}</div>
+                        <div style={{ fontSize: 12, color: "var(--grigio)", marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                          <span>📍 {u.indirizzo}</span>
+                          <span style={{ fontSize: 10, padding: "1px 6px", borderRadius: 8, fontWeight: 500, background: u.lat ? "#ECFDF5" : "#FFF7ED", color: u.lat ? "#16a34a" : "#ea580c", border: `1px solid ${u.lat ? "#86efac" : "#fdba74"}`, whiteSpace: "nowrap" }}>
+                            {u.lat ? "geo ✓" : "no geo"}
+                          </span>
+                        </div>
+                        {u.commessa && (
+                          <div style={{ marginTop: 4 }}>
+                            <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: "var(--salvia-light)", color: "var(--salvia-dark)", border: "1px solid var(--salvia-dark)33", fontWeight: 500 }}>
+                              {u.commessa.nome}
+                            </span>
+                          </div>
+                        )}
+                        {u.piani.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 6 }}>
+                            {u.piani.map((p, idx) => {
+                              const giorni = p.giorniSettimana.split(",").map((g) => GIORNI_LABEL[g] ?? g).join(" ");
+                              return (
+                                <span key={idx} style={{ fontSize: 10, padding: "2px 8px", borderRadius: 10, background: "var(--sabbia)", color: "var(--inchiostro)", border: "1px solid var(--bordo)", opacity: 0.85 }}>
+                                  {p.tipoServizio.nome} · {giorni} {p.oraInizio}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "var(--terra-light)", color: "var(--terra-dark)", border: "1px solid var(--terra)33", fontWeight: 500 }}>
+                          {u.oreSettimanali}h/sett.
+                        </span>
+                        <span style={{ fontSize: 12, color: "var(--grigio)", marginRight: 4 }}>{aperto ? "▲" : "▼"}</span>
+                      </div>
+                    </div>
+
+                    {/* Azioni */}
+                    <div style={{ display: "flex", gap: 6, marginLeft: 14 }} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => apriPreferiti(u)}
+                        style={{ ...btnSmallStyle, color: u.operatoriPreferiti.length > 0 ? "var(--terra-dark)" : undefined, borderColor: u.operatoriPreferiti.length > 0 ? "var(--terra)" : undefined }}
+                        title="Operatori preferiti"
+                      >
+                        Operatori {u.operatoriPreferiti.length > 0 ? `(${u.operatoriPreferiti.length})` : ""}
+                      </button>
+                      <button onClick={() => apriModifica(u)} style={btnSmallStyle}>Modifica</button>
+                      <button onClick={() => setArchiviaTarget(u)} style={{ ...btnSmallStyle, color: "#A0522D", borderColor: "#E8C4A8" }}>✕</button>
+                    </div>
+                  </div>
+
+                  {/* Dettaglio espanso */}
+                  {aperto && (
+                    <div style={{ padding: "0 20px 16px", borderTop: "1px solid var(--bordo)" }}>
+                      {u.note && (
+                        <div style={{ margin: "14px 0 10px", padding: "10px 14px", borderRadius: 8, background: "var(--sabbia)", fontSize: 12, color: "var(--inchiostro-light)", fontStyle: "italic", borderLeft: "3px solid var(--terra)" }}>
+                          {u.note}
+                        </div>
+                      )}
+                      {u.piani.length > 0 && (
+                        <div style={{ marginTop: u.note ? 0 : 14 }}>
+                          <div style={{ fontSize: 11, fontWeight: 500, color: "var(--grigio)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Piano assistenziale</div>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            {u.piani.map((p, idx) => {
+                              const giorni = p.giorniSettimana.split(",").map((g) => GIORNI_LABEL[g] ?? g).join(", ");
+                              return (
+                                <div key={idx} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", borderRadius: 8, background: "var(--bianco)", border: "1px solid var(--bordo)", fontSize: 12 }}>
+                                  <span style={{ padding: "2px 8px", borderRadius: 6, fontSize: 11, background: "var(--salvia-light)", color: "var(--salvia-dark)", fontWeight: 500, whiteSpace: "nowrap" }}>
+                                    {p.tipoServizio.nome}
+                                  </span>
+                                  <span style={{ color: "var(--inchiostro-light)" }}>{giorni}</span>
+                                  <span style={{ color: "var(--grigio)" }}>·</span>
+                                  <span style={{ color: "var(--inchiostro-light)" }}>{p.oraInizio}</span>
+                                  <span style={{ color: "var(--grigio)", marginLeft: "auto" }}>{p.durata ?? p.tipoServizio.durata}min</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {u.operatoriPreferiti.length > 0 && (
+                        <div style={{ marginTop: 14 }}>
+                          <div style={{ fontSize: 11, fontWeight: 500, color: "var(--grigio)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Operatori preferiti</div>
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                            {u.operatoriPreferiti.map((p) => (
+                              <span key={p.operatoreId} style={{ padding: "4px 10px", borderRadius: 8, background: "var(--terra-light)", border: "1px solid var(--terra)33", fontSize: 12, fontWeight: 500, color: "var(--terra-dark)" }}>
+                                {p.operatore.nome}
+                                <span style={{ fontSize: 11, opacity: 0.7, marginLeft: 5 }}>{p.operatore.qualifica}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {listaFiltrata.length === 0 && (
+            <div style={{ textAlign: "center", padding: "48px 0", color: "var(--grigio)", fontSize: 14 }}>Nessun utente trovato</div>
+          )}
+
+          {/* Paginazione */}
+          {totalePagine > 1 && (
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 24 }}>
+              <button onClick={() => setPagina((p) => Math.max(1, p - 1))} disabled={pagina === 1} style={{ ...btnSecondarioStyle, opacity: pagina === 1 ? 0.4 : 1 }}>← Precedente</button>
+              <span style={{ fontSize: 13, color: "var(--grigio)" }}>Pagina {pagina} di {totalePagine} · {listaFiltrata.length} utenti</span>
+              <button onClick={() => setPagina((p) => Math.min(totalePagine, p + 1))} disabled={pagina === totalePagine} style={{ ...btnSecondarioStyle, opacity: pagina === totalePagine ? 0.4 : 1 }}>Successiva →</button>
+            </div>
+          )}
+        </>
       )}
 
-      {modalUtente && (
-        <ModalUtente
-          utente={selezionato}
-          onClose={() => setModalUtente(false)}
-          onSalvato={carica}
-        />
-      )}
+      {/* Modali */}
+      {modalUtente && <ModalUtente utente={selezionato} onClose={() => setModalUtente(false)} onSalvato={carica} />}
       {modalPreferiti && utentePreferiti && (
         <ModalOperatoriPreferiti
           utenteId={utentePreferiti.id}
@@ -567,11 +327,13 @@ export default function Utenti() {
           onSalvato={carica}
         />
       )}
-      {mostraImport && (
-        <ImportExcel
-          tipo="utenti"
-          onChiudi={() => setMostraImport(false)}
-          onImportato={carica}
+      {mostraImport && <ImportExcel tipo="utenti" onChiudi={() => setMostraImport(false)} onImportato={carica} />}
+      {archiviaTarget && (
+        <ModalArchivia
+          nome={archiviaTarget.nome}
+          tipo="utente"
+          onConferma={archivia}
+          onClose={() => setArchiviaTarget(null)}
         />
       )}
     </div>
@@ -579,30 +341,11 @@ export default function Utenti() {
 }
 
 const btnPrimarioStyle: React.CSSProperties = {
-  padding: "9px 18px",
-  borderRadius: 10,
-  border: "none",
-  background: "var(--terra)",
-  color: "var(--bianco)",
-  fontSize: 13,
-  cursor: "pointer",
-  fontWeight: 500,
+  padding: "9px 18px", borderRadius: 10, border: "none", background: "var(--terra)", color: "var(--bianco)", fontSize: 13, cursor: "pointer", fontWeight: 500,
 };
 const btnSmallStyle: React.CSSProperties = {
-  padding: "5px 12px",
-  borderRadius: 8,
-  border: "1px solid var(--bordo)",
-  background: "var(--bianco)",
-  color: "var(--inchiostro-light)",
-  fontSize: 12,
-  cursor: "pointer",
+  padding: "5px 12px", borderRadius: 8, border: "1px solid var(--bordo)", background: "var(--bianco)", color: "var(--inchiostro-light)", fontSize: 12, cursor: "pointer",
 };
 const btnSecondarioStyle: React.CSSProperties = {
-  padding: "9px 14px",
-  borderRadius: 10,
-  border: "1px solid var(--bordo)",
-  background: "var(--bianco)",
-  color: "var(--inchiostro-light)",
-  fontSize: 13,
-  cursor: "pointer",
+  padding: "9px 14px", borderRadius: 10, border: "1px solid var(--bordo)", background: "var(--bianco)", color: "var(--inchiostro-light)", fontSize: 13, cursor: "pointer",
 };

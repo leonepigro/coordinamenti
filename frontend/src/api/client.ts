@@ -50,14 +50,18 @@ export const operatori = {
   lista: () => api.get("/operatori"),
   crea: (data: any) => api.post("/operatori", data),
   aggiorna: (id: number, data: any) => api.put(`/operatori/${id}`, data),
-  elimina: (id: number) => api.delete(`/operatori/${id}`),
+  archivia: (id: number, motivo?: string) => api.delete(`/operatori/${id}`, { data: { motivo } }),
+  archiviati: () => api.get("/operatori/archiviati"),
+  ripristina: (id: number) => api.put(`/operatori/${id}/ripristina`, {}),
 };
 
 export const utenti = {
   lista: () => api.get("/utenti"),
   crea: (data: any) => api.post("/utenti", data),
   aggiorna: (id: number, data: any) => api.put(`/utenti/${id}`, data),
-  elimina: (id: number) => api.delete(`/utenti/${id}`),
+  archivia: (id: number, motivo?: string) => api.delete(`/utenti/${id}`, { data: { motivo } }),
+  archiviati: () => api.get("/utenti/archiviati"),
+  ripristina: (id: number) => api.put(`/utenti/${id}/ripristina`, {}),
   setOperatoriPreferiti: (id: number, operatoreIds: number[]) =>
     api.put(`/utenti/${id}/operatori-preferiti`, { operatoreIds }),
 };

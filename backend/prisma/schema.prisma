@@ -16,9 +16,11 @@ model Operatore {
   lon             Float?
   preferenzaTurno String?
   telefono        String?
-  attivo          Boolean            @default(true)
-  createdAt       DateTime           @default(now())
-  skills          OperatoreSkill[]
+  attivo              Boolean            @default(true)
+  dataArchiviazione   DateTime?
+  motivoArchiviazione String?
+  createdAt           DateTime           @default(now())
+  skills              OperatoreSkill[]
   equipe          EquipeMembro[]
   interventi      Intervento[]
   indisponibilita Indisponibilita[]
@@ -97,9 +99,11 @@ model Utente {
   dataNascita      DateTime?
   diagnosi         String?
   capacitaMotorie  String?
-  attivo           Boolean              @default(true)
-  createdAt        DateTime             @default(now())
-  piani            PianoAssistenziale[]
+  attivo               Boolean              @default(true)
+  dataArchiviazione    DateTime?
+  motivoArchiviazione  String?
+  createdAt            DateTime             @default(now())
+  piani                PianoAssistenziale[]
   interventi       Intervento[]
   commessaId       Int?
   commessa         Commessa?            @relation(fields: [commessaId], references: [id])
