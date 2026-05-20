@@ -1,5 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { chat, briefing as apiBriefing, feedbackAI, operatori as apiOperatori, utenti as apiUtenti } from "../api/client";
+import {
+  chat,
+  briefing as apiBriefing,
+  feedbackAI,
+  operatori as apiOperatori,
+  utenti as apiUtenti,
+} from "../api/client";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import ReactMarkdown from "react-markdown";
@@ -17,7 +23,6 @@ const SUGGERIMENTI_DEFAULT = [
   "Genera i turni di questa settimana",
   "Mostrami le indisponibilità future",
   "Dammi un riepilogo della settimana",
-  "Chi può fare medicazioni?",
 ];
 
 export default function ChatAI({
@@ -34,7 +39,8 @@ export default function ChatAI({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<Record<number, 1 | -1>>({});
-  const [suggerimenti, setSuggerimenti] = useState<string[]>(SUGGERIMENTI_DEFAULT);
+  const [suggerimenti, setSuggerimenti] =
+    useState<string[]>(SUGGERIMENTI_DEFAULT);
   const bottomRef = useRef<HTMLDivElement>(null);
   const mapaIdRef = useRef<Record<string, string>>({});
 
@@ -46,25 +52,38 @@ export default function ChatAI({
   const briefingCaricatoRef = useRef(false);
 
   useEffect(() => {
-    chat.suggerimenti().then((res) => setSuggerimenti(res.data ?? SUGGERIMENTI_DEFAULT)).catch(() => {});
+    chat
+      .suggerimenti()
+      .then((res) => setSuggerimenti(res.data ?? SUGGERIMENTI_DEFAULT))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
-    Promise.allSettled([apiOperatori.lista(), apiUtenti.lista(), apiOperatori.archiviati(), apiUtenti.archiviati()])
-      .then(([resOp, resUt, resOpArch, resUtArch]) => {
-        const mappa: Record<string, string> = {};
-        const ops = [
-          ...((resOp.status === "fulfilled" ? resOp.value.data : null) ?? []),
-          ...((resOpArch.status === "fulfilled" ? resOpArch.value.data : null) ?? []),
-        ];
-        const uts = [
-          ...((resUt.status === "fulfilled" ? resUt.value.data : null) ?? []),
-          ...((resUtArch.status === "fulfilled" ? resUtArch.value.data : null) ?? []),
-        ];
-        ops.forEach((o: { id: number; nome: string }) => { mappa[`OP${o.id}`] = o.nome; });
-        uts.forEach((u: { id: number; nome: string }) => { mappa[`U${u.id}`] = u.nome; });
-        mapaIdRef.current = mappa;
+    Promise.allSettled([
+      apiOperatori.lista(),
+      apiUtenti.lista(),
+      apiOperatori.archiviati(),
+      apiUtenti.archiviati(),
+    ]).then(([resOp, resUt, resOpArch, resUtArch]) => {
+      const mappa: Record<string, string> = {};
+      const ops = [
+        ...((resOp.status === "fulfilled" ? resOp.value.data : null) ?? []),
+        ...((resOpArch.status === "fulfilled" ? resOpArch.value.data : null) ??
+          []),
+      ];
+      const uts = [
+        ...((resUt.status === "fulfilled" ? resUt.value.data : null) ?? []),
+        ...((resUtArch.status === "fulfilled" ? resUtArch.value.data : null) ??
+          []),
+      ];
+      ops.forEach((o: { id: number; nome: string }) => {
+        mappa[`OP${o.id}`] = o.nome;
       });
+      uts.forEach((u: { id: number; nome: string }) => {
+        mappa[`U${u.id}`] = u.nome;
+      });
+      mapaIdRef.current = mappa;
+    });
   }, []);
 
   useEffect(() => {
@@ -91,8 +110,14 @@ export default function ChatAI({
 
   function deanonimizza(testo: string): string {
     return testo
-      .replace(/\bOP(\d+)\b/g, (_, id) => mapaIdRef.current[`OP${id}`] ?? `OP${id}`)
-      .replace(/\bU(\d+)\b/g, (_, id) => mapaIdRef.current[`U${id}`] ?? `U${id}`);
+      .replace(
+        /\bOP(\d+)\b/g,
+        (_, id) => mapaIdRef.current[`OP${id}`] ?? `OP${id}`,
+      )
+      .replace(
+        /\bU(\d+)\b/g,
+        (_, id) => mapaIdRef.current[`U${id}`] ?? `U${id}`,
+      );
   }
 
   async function caricaBriefing() {
@@ -122,9 +147,11 @@ export default function ChatAI({
       testo += `• ${b.operatoriAttivi} operatori · ${b.utentiAttivi} utenti in carico\n`;
       if (b.sovraccarichi.length > 0) {
         testo += `\n⚠️ Operatori in sovraccarico:\n`;
-        b.sovraccarichi.forEach((s: { nome: string; oreUsate: number; oreMax: number }) => {
-          testo += `• ${s.nome}: ${s.oreUsate}h su ${s.oreMax}h\n`;
-        });
+        b.sovraccarichi.forEach(
+          (s: { nome: string; oreUsate: number; oreMax: number }) => {
+            testo += `• ${s.nome}: ${s.oreUsate}h su ${s.oreMax}h\n`;
+          },
+        );
       }
       testo += `\nCome posso aiutarti oggi?`;
       setMessaggi((prev) => [
@@ -145,7 +172,9 @@ export default function ChatAI({
         toolsUsati: m.toolsUsati ?? [],
         rating,
       });
-    } catch { /* silenzioso */ }
+    } catch {
+      /* silenzioso */
+    }
   }
 
   async function invia(testo?: string) {
@@ -193,7 +222,13 @@ export default function ChatAI({
           setReasoningAttivo(false);
           setMessaggi((prev) => [
             ...prev,
-            { ruolo: "ai", testo: event.testo, timestamp: new Date(), toolsUsati: [...toolsAccumulati], messaggioUtente: msg },
+            {
+              ruolo: "ai",
+              testo: event.testo,
+              timestamp: new Date(),
+              toolsUsati: [...toolsAccumulati],
+              messaggioUtente: msg,
+            },
           ]);
         } else if (event.tipo === "errore") {
           setReasoningAttivo(false);
@@ -299,7 +334,16 @@ export default function ChatAI({
                 letterSpacing: "0.04em",
               }}
             >
-              {m.ruolo === "user" ? "Paola" : <>Coordina<strong style={{ fontSize: "1.08em", fontStyle: "italic" }}>menti</strong></>}
+              {m.ruolo === "user" ? (
+                "Paola"
+              ) : (
+                <>
+                  Coordina
+                  <strong style={{ fontSize: "1.08em", fontStyle: "italic" }}>
+                    menti
+                  </strong>
+                </>
+              )}
             </div>
 
             {/* Bolla */}
@@ -326,34 +370,103 @@ export default function ChatAI({
                 <ReactMarkdown
                   components={{
                     p: ({ children }) => (
-                      <p style={{ margin: "0 0 10px", lineHeight: 1.75 }}>{children}</p>
+                      <p style={{ margin: "0 0 10px", lineHeight: 1.75 }}>
+                        {children}
+                      </p>
                     ),
                     strong: ({ children }) => (
-                      <strong style={{ fontWeight: 600, color: "var(--inchiostro)" }}>{children}</strong>
+                      <strong
+                        style={{ fontWeight: 600, color: "var(--inchiostro)" }}
+                      >
+                        {children}
+                      </strong>
                     ),
                     ol: ({ children }) => (
-                      <ol style={{ margin: "8px 0 10px", paddingLeft: 20, display: "flex", flexDirection: "column", gap: 8 }}>{children}</ol>
+                      <ol
+                        style={{
+                          margin: "8px 0 10px",
+                          paddingLeft: 20,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 8,
+                        }}
+                      >
+                        {children}
+                      </ol>
                     ),
                     ul: ({ children }) => (
-                      <ul style={{ margin: "8px 0 10px", paddingLeft: 20, display: "flex", flexDirection: "column", gap: 6 }}>{children}</ul>
+                      <ul
+                        style={{
+                          margin: "8px 0 10px",
+                          paddingLeft: 20,
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 6,
+                        }}
+                      >
+                        {children}
+                      </ul>
                     ),
                     li: ({ children }) => (
                       <li style={{ lineHeight: 1.7 }}>{children}</li>
                     ),
                     h1: ({ children }) => (
-                      <h1 style={{ fontSize: 16, fontWeight: 600, margin: "14px 0 6px", color: "var(--inchiostro)" }}>{children}</h1>
+                      <h1
+                        style={{
+                          fontSize: 16,
+                          fontWeight: 600,
+                          margin: "14px 0 6px",
+                          color: "var(--inchiostro)",
+                        }}
+                      >
+                        {children}
+                      </h1>
                     ),
                     h2: ({ children }) => (
-                      <h2 style={{ fontSize: 15, fontWeight: 600, margin: "12px 0 6px", color: "var(--inchiostro)" }}>{children}</h2>
+                      <h2
+                        style={{
+                          fontSize: 15,
+                          fontWeight: 600,
+                          margin: "12px 0 6px",
+                          color: "var(--inchiostro)",
+                        }}
+                      >
+                        {children}
+                      </h2>
                     ),
                     h3: ({ children }) => (
-                      <h3 style={{ fontSize: 14, fontWeight: 600, margin: "10px 0 4px", color: "var(--inchiostro)" }}>{children}</h3>
+                      <h3
+                        style={{
+                          fontSize: 14,
+                          fontWeight: 600,
+                          margin: "10px 0 4px",
+                          color: "var(--inchiostro)",
+                        }}
+                      >
+                        {children}
+                      </h3>
                     ),
                     code: ({ children }) => (
-                      <code style={{ background: "rgba(0,0,0,0.06)", borderRadius: 4, padding: "1px 5px", fontSize: 12, fontFamily: "monospace" }}>{children}</code>
+                      <code
+                        style={{
+                          background: "rgba(0,0,0,0.06)",
+                          borderRadius: 4,
+                          padding: "1px 5px",
+                          fontSize: 12,
+                          fontFamily: "monospace",
+                        }}
+                      >
+                        {children}
+                      </code>
                     ),
                     hr: () => (
-                      <hr style={{ border: "none", borderTop: "1px solid var(--bordo)", margin: "12px 0" }} />
+                      <hr
+                        style={{
+                          border: "none",
+                          borderTop: "1px solid var(--bordo)",
+                          margin: "12px 0",
+                        }}
+                      />
                     ),
                   }}
                 >
@@ -364,23 +477,60 @@ export default function ChatAI({
 
             {/* Feedback */}
             {m.ruolo === "ai" && m.messaggioUtente && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 5,
+                }}
+              >
                 {feedback[idx] === undefined ? (
                   <>
                     <button
                       onClick={() => daiFeedback(idx, m, 1)}
                       title="Risposta utile"
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: "2px 4px", borderRadius: 6, opacity: 0.5, transition: "opacity 0.15s" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                      onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.5")}
-                    >👍</button>
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: 14,
+                        padding: "2px 4px",
+                        borderRadius: 6,
+                        opacity: 0.5,
+                        transition: "opacity 0.15s",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.opacity = "1")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.opacity = "0.5")
+                      }
+                    >
+                      👍
+                    </button>
                     <button
                       onClick={() => daiFeedback(idx, m, -1)}
                       title="Risposta non utile"
-                      style={{ background: "none", border: "none", cursor: "pointer", fontSize: 14, padding: "2px 4px", borderRadius: 6, opacity: 0.5, transition: "opacity 0.15s" }}
-                      onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                      onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.5")}
-                    >👎</button>
+                      style={{
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        fontSize: 14,
+                        padding: "2px 4px",
+                        borderRadius: 6,
+                        opacity: 0.5,
+                        transition: "opacity 0.15s",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.currentTarget.style.opacity = "1")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.currentTarget.style.opacity = "0.5")
+                      }
+                    >
+                      👎
+                    </button>
                   </>
                 ) : (
                   <span style={{ fontSize: 11, color: "var(--grigio)" }}>
@@ -419,7 +569,10 @@ export default function ChatAI({
                 letterSpacing: "0.04em",
               }}
             >
-              Coordina<strong style={{ fontSize: "1.08em", fontStyle: "italic" }}>menti</strong>
+              Coordina
+              <strong style={{ fontSize: "1.08em", fontStyle: "italic" }}>
+                menti
+              </strong>
             </div>
             <div
               style={{
@@ -525,7 +678,10 @@ export default function ChatAI({
                 letterSpacing: "0.04em",
               }}
             >
-              Coordina<strong style={{ fontSize: "1.08em", fontStyle: "italic" }}>menti</strong>
+              Coordina
+              <strong style={{ fontSize: "1.08em", fontStyle: "italic" }}>
+                menti
+              </strong>
             </div>
             <div
               style={{
