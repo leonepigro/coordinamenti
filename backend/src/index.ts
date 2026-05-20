@@ -1275,6 +1275,34 @@ Formato delle risposte:
 - Non aggiungere disclaimer o spiegazioni inutili — vai dritto al punto${includeCatalogo ? CATALOGO_ATTIVITA : ""}`;
 }
 
+const SUGGERIMENTI_FALLBACK = [
+  "Chi è disponibile oggi?",
+  "Genera i turni di questa settimana",
+  "Mostrami le indisponibilità future",
+  "Dammi un riepilogo della settimana",
+  "Chi può fare medicazioni?",
+];
+
+app.get("/api/chat/suggerimenti", async (req, res) => {
+  const sessantagiorni = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+  const logs = await prisma.feedbackAI.findMany({
+    where: { tipo: "chat_query", createdAt: { gte: sessantagiorni } },
+    select: { messaggio: true },
+  });
+  const conteggi = new Map<string, number>();
+  for (const { messaggio } of logs) {
+    const key = messaggio.trim().toLowerCase();
+    conteggi.set(key, (conteggi.get(key) ?? 0) + 1);
+  }
+  const top = [...conteggi.entries()]
+    .filter(([, n]) => n >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([msg]) => msg);
+  const suggerimenti = top.length >= 3 ? top : SUGGERIMENTI_FALLBACK;
+  res.json(suggerimenti);
+});
+
 app.post("/api/chat/stream", async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -1289,6 +1317,11 @@ app.post("/api/chat/stream", async (req, res) => {
     const { message, history = [] } = req.body;
     const trimmedHistory = (history as any[]).slice(-4);
     const messages = [...trimmedHistory, { role: "user" as const, content: message }];
+
+    // Log query per suggerimenti adattativi (fire and forget)
+    prisma.feedbackAI.create({
+      data: { tipo: "chat_query", messaggio: message, risposta: "", toolsUsati: ["__chat_query__"], rating: 0 },
+    }).catch(() => {});
 
     const utente = estraiUtente(req);
     const systemPrompt = buildSystemPrompt(utente.nome, utente.ruolo, message);

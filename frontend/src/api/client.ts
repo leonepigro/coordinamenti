@@ -125,6 +125,7 @@ export const gapOre = {
 export const chat = {
   invia: (message: string, history: any[]) =>
     api.post("/chat", { message, history }),
+  suggerimenti: () => api.get<string[]>("/chat/suggerimenti"),
   stream: (
     message: string,
     history: any[],

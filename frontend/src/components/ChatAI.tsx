@@ -12,7 +12,7 @@ interface Messaggio {
   messaggioUtente?: string;
 }
 
-const SUGGERIMENTI = [
+const SUGGERIMENTI_DEFAULT = [
   "Chi è disponibile oggi?",
   "Genera i turni di questa settimana",
   "Mostrami le indisponibilità future",
@@ -34,6 +34,7 @@ export default function ChatAI({
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<Record<number, 1 | -1>>({});
+  const [suggerimenti, setSuggerimenti] = useState<string[]>(SUGGERIMENTI_DEFAULT);
   const bottomRef = useRef<HTMLDivElement>(null);
   const mapaIdRef = useRef<Record<string, string>>({});
 
@@ -43,6 +44,10 @@ export default function ChatAI({
   const [reasoningAttivo, setReasoningAttivo] = useState(false);
 
   const briefingCaricatoRef = useRef(false);
+
+  useEffect(() => {
+    chat.suggerimenti().then((res) => setSuggerimenti(res.data ?? SUGGERIMENTI_DEFAULT)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     Promise.allSettled([apiOperatori.lista(), apiUtenti.lista(), apiOperatori.archiviati(), apiUtenti.archiviati()])
@@ -561,7 +566,7 @@ export default function ChatAI({
             flexShrink: 0,
           }}
         >
-          {SUGGERIMENTI.map((s) => (
+          {suggerimenti.map((s) => (
             <button
               key={s}
               onClick={() => invia(s)}
