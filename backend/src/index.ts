@@ -1156,7 +1156,7 @@ app.get("/api/gap-ore", async (_req, res) => {
   res.json({ utenti: risultati });
 });
 
-const MAX_TOOL_RESULT_CHARS = 1500;
+const MAX_TOOL_RESULT_CHARS = 800;
 function troncaRisultato(s: string): string {
   if (s.length <= MAX_TOOL_RESULT_CHARS) return s;
   return s.slice(0, MAX_TOOL_RESULT_CHARS) + `\n[...troncato, ${s.length - MAX_TOOL_RESULT_CHARS} caratteri omessi]`;
@@ -1315,7 +1315,12 @@ app.post("/api/chat/stream", async (req, res) => {
 
   try {
     const { message, history = [] } = req.body;
-    const trimmedHistory = (history as any[]).slice(-4);
+    const trimmedHistory = (history as any[]).slice(-2).map((m: any) => ({
+      ...m,
+      content: typeof m.content === "string" && m.content.length > 800
+        ? m.content.slice(0, 800) + "…"
+        : m.content,
+    }));
     const messages = [...trimmedHistory, { role: "user" as const, content: message }];
 
     // Log query per suggerimenti adattativi (fire and forget)
