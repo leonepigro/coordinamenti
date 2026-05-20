@@ -266,6 +266,7 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
           qualifica: o.qualifica,
           oreSettimanali: o.oreSettimanali,
           preferenzaTurno: o.preferenzaTurno ?? "tutti",
+          indirizzo: o.indirizzo ?? null,
           skills: o.skills.map((s) => s.skill.nome),
         })),
       );
@@ -288,6 +289,7 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
           id: u.id,
           etichetta: `U${u.id}`,
           oreSettimanali: u.oreSettimanali,
+          indirizzo: u.indirizzo ?? null,
           ...(u.note ? { note: u.note } : {}),
           preferiti: u.operatoriPreferiti.map((p) => `OP${p.operatore.id}`),
           piani: u.piani.map((p) => ({
