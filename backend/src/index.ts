@@ -10,7 +10,9 @@ dotenv.config();
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-export const prisma = new PrismaClient({ adapter: new PrismaPg(process.env.DATABASE_URL!) });
+export const prisma = new PrismaClient({
+  adapter: new PrismaPg(process.env.DATABASE_URL!),
+});
 
 const app = express();
 app.use(cors());
@@ -18,27 +20,44 @@ app.use(express.json());
 
 type GeoResult = { lat: number; lon: number; indirizzoNorm: string };
 
-async function geocodificaNominatim(indirizzo: string): Promise<GeoResult | null> {
+async function geocodificaNominatim(
+  indirizzo: string,
+): Promise<GeoResult | null> {
   try {
-    const q = indirizzo.replace(/\(.*?\)/g, "").replace(/,?\s*Roma\s*$/i, "").trim() + " Roma";
+    const q =
+      indirizzo
+        .replace(/\(.*?\)/g, "")
+        .replace(/,?\s*Roma\s*$/i, "")
+        .trim() + " Roma";
     const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1&viewbox=12.35,41.78,12.65,42.00&bounded=1&addressdetails=1`;
     console.log(`[geocodifica/nominatim] query: ${q}`);
-    const res = await fetch(url, { headers: { "User-Agent": "coordinamenti-app/1.0" } });
+    const res = await fetch(url, {
+      headers: { "User-Agent": "coordinamenti-app/1.0" },
+    });
     const ct = res.headers.get("content-type") ?? "";
     if (!res.ok || !ct.includes("json")) {
-      console.log(`[geocodifica/nominatim] risposta non valida: status=${res.status} content-type=${ct}`);
+      console.log(
+        `[geocodifica/nominatim] risposta non valida: status=${res.status} content-type=${ct}`,
+      );
       return null;
     }
     const data = (await res.json()) as any[];
-    if (!data.length) { console.log(`[geocodifica/nominatim] nessun risultato per: ${q}`); return null; }
+    if (!data.length) {
+      console.log(`[geocodifica/nominatim] nessun risultato per: ${q}`);
+      return null;
+    }
     const d = data[0];
     const a = d.address ?? {};
     const road = a.road ?? a.pedestrian ?? a.footway ?? "";
     const civicoOSM = a.house_number ?? "";
-    const civicoOriginale = (indirizzo.replace(/\(.*?\)/g, "").match(/[\s,]+(\d+[a-zA-Z/]*)$/) ?? [])[1] ?? "";
+    const civicoOriginale =
+      (indirizzo.replace(/\(.*?\)/g, "").match(/[\s,]+(\d+[a-zA-Z/]*)$/) ??
+        [])[1] ?? "";
     const num = civicoOSM || civicoOriginale;
     const indirizzoNorm = road ? `${road}${num ? " " + num : ""}, Roma` : q;
-    console.log(`[geocodifica/nominatim] trovato: ${indirizzoNorm} → ${d.lat}, ${d.lon}`);
+    console.log(
+      `[geocodifica/nominatim] trovato: ${indirizzoNorm} → ${d.lat}, ${d.lon}`,
+    );
     return { lat: parseFloat(d.lat), lon: parseFloat(d.lon), indirizzoNorm };
   } catch (e) {
     console.error(`[geocodifica/nominatim] errore per "${indirizzo}":`, e);
@@ -49,23 +68,36 @@ async function geocodificaNominatim(indirizzo: string): Promise<GeoResult | null
 async function geocodificaHere(indirizzo: string): Promise<GeoResult | null> {
   try {
     const key = process.env.GEOCODING_HERE_KEY;
-    if (!key) { console.log(`[geocodifica/here] GEOCODING_HERE_KEY non configurata`); return null; }
+    if (!key) {
+      console.log(`[geocodifica/here] GEOCODING_HERE_KEY non configurata`);
+      return null;
+    }
     const q = indirizzo.replace(/\(.*?\)/g, "").trim();
     const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(q + ", Roma, Italia")}&apiKey=${key}&in=countryCode%3AITA&limit=1`;
     console.log(`[geocodifica/here] query: ${q}`);
     const res = await fetch(url);
-    if (!res.ok) { console.log(`[geocodifica/here] errore: status=${res.status}`); return null; }
-    const data = await res.json() as any;
+    if (!res.ok) {
+      console.log(`[geocodifica/here] errore: status=${res.status}`);
+      return null;
+    }
+    const data = (await res.json()) as any;
     const items: any[] = data.items ?? [];
-    if (!items.length) { console.log(`[geocodifica/here] nessun risultato per: ${q}`); return null; }
+    if (!items.length) {
+      console.log(`[geocodifica/here] nessun risultato per: ${q}`);
+      return null;
+    }
     const item = items[0];
     const a = item.address ?? {};
     const road = a.street ?? "";
     const civicoHere = a.houseNumber ?? "";
-    const civicoOriginale = (indirizzo.replace(/\(.*?\)/g, "").match(/[\s,]+(\d+[a-zA-Z/]*)$/) ?? [])[1] ?? "";
+    const civicoOriginale =
+      (indirizzo.replace(/\(.*?\)/g, "").match(/[\s,]+(\d+[a-zA-Z/]*)$/) ??
+        [])[1] ?? "";
     const num = civicoHere || civicoOriginale;
     const indirizzoNorm = road ? `${road}${num ? " " + num : ""}, Roma` : q;
-    console.log(`[geocodifica/here] trovato: ${indirizzoNorm} → ${item.position.lat}, ${item.position.lng}`);
+    console.log(
+      `[geocodifica/here] trovato: ${indirizzoNorm} → ${item.position.lat}, ${item.position.lng}`,
+    );
     return { lat: item.position.lat, lon: item.position.lng, indirizzoNorm };
   } catch (e) {
     console.error(`[geocodifica/here] errore per "${indirizzo}":`, e);
@@ -85,7 +117,8 @@ const BUILD_TIME = new Date().toISOString();
 const OLLAMA_BASE_URL = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5:14b";
 const GROQ_MODEL = process.env.GROQ_MODEL ?? "llama-3.3-70b-versatile";
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
+const ANTHROPIC_MODEL =
+  process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5-20251001";
 const GEMINI_MODEL = process.env.GEMINI_MODEL ?? "gemini-2.0-flash";
 const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
@@ -107,14 +140,19 @@ const PAOLA_HASH = bcrypt.hashSync(
   10,
 );
 import { generaTurni, salvaAssegnazioni } from "./scheduler";
-import { inviaRiepilogoGiornaliero, inviaAggiornamentoPianificazione } from "./notifiche";
+import {
+  inviaRiepilogoGiornaliero,
+  inviaAggiornamentoPianificazione,
+} from "./notifiche";
 import cron from "node-cron";
 
 app.post("/api/scheduling/spiega", async (req, res) => {
   try {
     const { dataInizio, dataFine } = req.body;
-    const inizio = new Date(dataInizio); inizio.setHours(0, 0, 0, 0);
-    const fine = new Date(dataFine); fine.setHours(23, 59, 59, 999);
+    const inizio = new Date(dataInizio);
+    inizio.setHours(0, 0, 0, 0);
+    const fine = new Date(dataFine);
+    fine.setHours(23, 59, 59, 999);
 
     const lista = await prisma.intervento.findMany({
       where: { data: { gte: inizio, lte: fine } },
@@ -122,21 +160,30 @@ app.post("/api/scheduling/spiega", async (req, res) => {
       orderBy: [{ data: "asc" }, { turno: "asc" }],
     });
 
-    if (lista.length === 0) return res.json({ spiegazione: "Nessun intervento generato." });
+    if (lista.length === 0)
+      return res.json({ spiegazione: "Nessun intervento generato." });
 
     const scoperti = lista.filter((i) => !i.operatore);
     const fmt = (d: Date) => `${d.getDate()}/${d.getMonth() + 1}`;
-    const righe = lista.map((i) =>
-      `${fmt(i.data)} ${i.turno}: ${i.utente.nome} → ${i.operatore?.nome ?? "SCOPERTO"} (${i.tipoServizio?.nome ?? "?"}, ${i.durata}min)`
-    ).join("\n");
+    const righe = lista
+      .map(
+        (i) =>
+          `${fmt(i.data)} ${i.turno}: ${i.utente.nome} → ${i.operatore?.nome ?? "SCOPERTO"} (${i.tipoServizio?.nome ?? "?"}, ${i.durata}min)`,
+      )
+      .join("\n");
 
     const prompt = `Sei coordinatore di Coordina**menti**. Hai appena generato questo piano turni:\n\n${righe}\n\nFornisci un'analisi sintetica in 3-5 bullet point: punti di forza, criticità${scoperti.length > 0 ? ` (${scoperti.length} scoperti)` : ""}, suggerimenti operativi concreti. Max 150 parole.`;
 
     try {
-      const { res: completion } = await chatWithFallback({ messages: [{ role: "user", content: prompt }], tools: [] });
+      const { res: completion } = await chatWithFallback({
+        messages: [{ role: "user", content: prompt }],
+        tools: [],
+      });
       res.json({ spiegazione: completion.choices[0].message.content ?? "" });
     } catch {
-      res.json({ spiegazione: `Piano generato: **${lista.length - scoperti.length}** assegnati, **${scoperti.length}** scoperti.` });
+      res.json({
+        spiegazione: `Piano generato: **${lista.length - scoperti.length}** assegnati, **${scoperti.length}** scoperti.`,
+      });
     }
   } catch (e) {
     res.status(500).json({ ok: false, error: String(e) });
@@ -181,12 +228,16 @@ app.post("/api/notifiche/test", async (req, res) => {
 });
 
 // Cron: ogni mattina alle 6:30 invia il riepilogo del giorno agli operatori
-cron.schedule("30 6 * * *", () => {
-  console.log("[cron] Invio riepilogo giornaliero...");
-  inviaRiepilogoGiornaliero(new Date()).catch((e) =>
-    console.error("[cron] errore:", e),
-  );
-}, { timezone: "Europe/Rome" });
+cron.schedule(
+  "30 6 * * *",
+  () => {
+    console.log("[cron] Invio riepilogo giornaliero...");
+    inviaRiepilogoGiornaliero(new Date()).catch((e) =>
+      console.error("[cron] errore:", e),
+    );
+  },
+  { timezone: "Europe/Rome" },
+);
 
 import { ottimizzaGiornata, geocodifica } from "./router";
 
@@ -247,7 +298,9 @@ app.get("/api/utenti", async (req, res) => {
         include: { tipoServizio: true },
       },
       operatoriPreferiti: {
-        include: { operatore: { select: { id: true, nome: true, qualifica: true } } },
+        include: {
+          operatore: { select: { id: true, nome: true, qualifica: true } },
+        },
         orderBy: { operatore: { nome: "asc" } },
       },
     },
@@ -297,7 +350,8 @@ app.get("/api/commesse", async (req, res) => {
 
 app.post("/api/commesse", async (req, res) => {
   const { nome } = req.body;
-  if (!nome?.trim()) return res.status(400).json({ errore: "Nome obbligatorio" });
+  if (!nome?.trim())
+    return res.status(400).json({ errore: "Nome obbligatorio" });
   try {
     const c = await prisma.commessa.create({ data: { nome: nome.trim() } });
     res.json(c);
@@ -307,13 +361,16 @@ app.post("/api/commesse", async (req, res) => {
 });
 
 app.get("/api/qualifiche", async (req, res) => {
-  const qualifiche = await prisma.qualifica.findMany({ orderBy: { nome: "asc" } });
+  const qualifiche = await prisma.qualifica.findMany({
+    orderBy: { nome: "asc" },
+  });
   res.json(qualifiche);
 });
 
 app.post("/api/qualifiche", async (req, res) => {
   const { nome } = req.body;
-  if (!nome?.trim()) return res.status(400).json({ errore: "Nome obbligatorio" });
+  if (!nome?.trim())
+    return res.status(400).json({ errore: "Nome obbligatorio" });
   try {
     const q = await prisma.qualifica.create({ data: { nome: nome.trim() } });
     res.json(q);
@@ -383,9 +440,14 @@ app.post("/api/operatori", async (req, res) => {
       lat: coords?.lat,
       lon: coords?.lon,
       skills: { create: skillIds.map((id: number) => ({ skillId: id })) },
-      commesse: { create: (commessaIds ?? []).map((id: number) => ({ commessaId: id })) },
+      commesse: {
+        create: (commessaIds ?? []).map((id: number) => ({ commessaId: id })),
+      },
     },
-    include: { skills: { include: { skill: true } }, commesse: { include: { commessa: true } } },
+    include: {
+      skills: { include: { skill: true } },
+      commesse: { include: { commessa: true } },
+    },
   });
 
   if (email?.trim()) {
@@ -451,9 +513,14 @@ app.put("/api/operatori/:id", async (req, res) => {
       lat: coords?.lat,
       lon: coords?.lon,
       skills: { create: skillIds.map((id: number) => ({ skillId: id })) },
-      commesse: { create: (commessaIds ?? []).map((id: number) => ({ commessaId: id })) },
+      commesse: {
+        create: (commessaIds ?? []).map((id: number) => ({ commessaId: id })),
+      },
     },
-    include: { skills: { include: { skill: true } }, commesse: { include: { commessa: true } } },
+    include: {
+      skills: { include: { skill: true } },
+      commesse: { include: { commessa: true } },
+    },
   });
 
   if (email?.trim()) {
@@ -489,7 +556,11 @@ app.delete("/api/operatori/:id", async (req, res) => {
   const { motivo } = req.body ?? {};
   await prisma.operatore.update({
     where: { id: parseInt(req.params.id) },
-    data: { attivo: false, dataArchiviazione: new Date(), motivoArchiviazione: motivo ?? null },
+    data: {
+      attivo: false,
+      dataArchiviazione: new Date(),
+      motivoArchiviazione: motivo ?? null,
+    },
   });
   res.json({ ok: true });
 });
@@ -505,7 +576,19 @@ app.put("/api/operatori/:id/ripristina", async (req, res) => {
 // --- UTENTI ---
 
 app.post("/api/utenti", async (req, res) => {
-  const { nome, indirizzo, oreSettimanali, note, piani, commessaId, lat, lon, dataNascita, diagnosi, capacitaMotorie } = req.body;
+  const {
+    nome,
+    indirizzo,
+    oreSettimanali,
+    note,
+    piani,
+    commessaId,
+    lat,
+    lon,
+    dataNascita,
+    diagnosi,
+    capacitaMotorie,
+  } = req.body;
   const coords = lat && lon ? { lat, lon } : await geocodifica(indirizzo);
   const utente = await prisma.utente.create({
     data: {
@@ -527,11 +610,21 @@ app.post("/api/utenti", async (req, res) => {
           durata: p.durata ? parseInt(p.durata) : null,
           vincoloSesso: p.vincoloSesso || null,
           vincoloNazionalita: p.vincoloNazionalita || null,
-          skills: p.skillIds?.length ? { create: p.skillIds.map((id: number) => ({ skillId: id })) } : undefined,
+          skills: p.skillIds?.length
+            ? { create: p.skillIds.map((id: number) => ({ skillId: id })) }
+            : undefined,
         })),
       },
     },
-    include: { piani: { include: { tipoServizio: { include: { skills: true } }, skills: { include: { skill: true } } } }, commessa: true },
+    include: {
+      piani: {
+        include: {
+          tipoServizio: { include: { skills: true } },
+          skills: { include: { skill: true } },
+        },
+      },
+      commessa: true,
+    },
   });
   res.json(utente);
 });
@@ -540,14 +633,33 @@ app.get("/api/utenti/archiviati", async (req, res) => {
   const lista = await prisma.utente.findMany({
     where: { attivo: false },
     orderBy: { dataArchiviazione: "desc" },
-    select: { id: true, nome: true, indirizzo: true, dataArchiviazione: true, motivoArchiviazione: true, createdAt: true },
+    select: {
+      id: true,
+      nome: true,
+      indirizzo: true,
+      dataArchiviazione: true,
+      motivoArchiviazione: true,
+      createdAt: true,
+    },
   });
   res.json(lista);
 });
 
 app.put("/api/utenti/:id", async (req, res) => {
   const id = parseInt(req.params.id);
-  const { nome, indirizzo, oreSettimanali, note, piani, commessaId, lat, lon, dataNascita, diagnosi, capacitaMotorie } = req.body;
+  const {
+    nome,
+    indirizzo,
+    oreSettimanali,
+    note,
+    piani,
+    commessaId,
+    lat,
+    lon,
+    dataNascita,
+    diagnosi,
+    capacitaMotorie,
+  } = req.body;
   const coords = lat && lon ? { lat, lon } : await geocodifica(indirizzo);
   await prisma.pianoAssistenziale.deleteMany({ where: { utenteId: id } });
   const utente = await prisma.utente.update({
@@ -571,11 +683,21 @@ app.put("/api/utenti/:id", async (req, res) => {
           durata: p.durata ? parseInt(p.durata) : null,
           vincoloSesso: p.vincoloSesso || null,
           vincoloNazionalita: p.vincoloNazionalita || null,
-          skills: p.skillIds?.length ? { create: p.skillIds.map((id: number) => ({ skillId: id })) } : undefined,
+          skills: p.skillIds?.length
+            ? { create: p.skillIds.map((id: number) => ({ skillId: id })) }
+            : undefined,
         })),
       },
     },
-    include: { piani: { include: { tipoServizio: { include: { skills: true } }, skills: { include: { skill: true } } } }, commessa: true },
+    include: {
+      piani: {
+        include: {
+          tipoServizio: { include: { skills: true } },
+          skills: { include: { skill: true } },
+        },
+      },
+      commessa: true,
+    },
   });
   res.json(utente);
 });
@@ -584,7 +706,11 @@ app.delete("/api/utenti/:id", async (req, res) => {
   const { motivo } = req.body ?? {};
   await prisma.utente.update({
     where: { id: parseInt(req.params.id) },
-    data: { attivo: false, dataArchiviazione: new Date(), motivoArchiviazione: motivo ?? null },
+    data: {
+      attivo: false,
+      dataArchiviazione: new Date(),
+      motivoArchiviazione: motivo ?? null,
+    },
   });
   res.json({ ok: true });
 });
@@ -662,7 +788,6 @@ app.delete("/api/equipe/:id", async (req, res) => {
   await prisma.equipe.delete({ where: { id: parseInt(req.params.id) } });
   res.json({ ok: true });
 });
-
 
 // --- INDISPONIBILITÀ ---
 app.get("/api/indisponibilita", async (req, res) => {
@@ -852,7 +977,16 @@ app.get("/api/piani", async (req, res) => {
 });
 
 app.post("/api/piani", async (req, res) => {
-  const { utenteId, tipoServizioId, giorniSettimana, oraInizio, durata, skillIds, vincoloSesso, vincoloNazionalita } = req.body;
+  const {
+    utenteId,
+    tipoServizioId,
+    giorniSettimana,
+    oraInizio,
+    durata,
+    skillIds,
+    vincoloSesso,
+    vincoloNazionalita,
+  } = req.body;
   const piano = await prisma.pianoAssistenziale.create({
     data: {
       utenteId,
@@ -862,15 +996,29 @@ app.post("/api/piani", async (req, res) => {
       durata: durata ? parseInt(durata) : null,
       vincoloSesso: vincoloSesso || null,
       vincoloNazionalita: vincoloNazionalita || null,
-      skills: skillIds?.length ? { create: skillIds.map((id: number) => ({ skillId: id })) } : undefined,
+      skills: skillIds?.length
+        ? { create: skillIds.map((id: number) => ({ skillId: id })) }
+        : undefined,
     },
-    include: { tipoServizio: { include: { skills: true } }, utente: true, skills: { include: { skill: true } } },
+    include: {
+      tipoServizio: { include: { skills: true } },
+      utente: true,
+      skills: { include: { skill: true } },
+    },
   });
   res.json(piano);
 });
 
 app.put("/api/piani/:id", async (req, res) => {
-  const { tipoServizioId, giorniSettimana, oraInizio, durata, skillIds, vincoloSesso, vincoloNazionalita } = req.body;
+  const {
+    tipoServizioId,
+    giorniSettimana,
+    oraInizio,
+    durata,
+    skillIds,
+    vincoloSesso,
+    vincoloNazionalita,
+  } = req.body;
   const id = parseInt(req.params.id);
   await prisma.pianoSkill.deleteMany({ where: { pianoId: id } });
   const piano = await prisma.pianoAssistenziale.update({
@@ -882,9 +1030,15 @@ app.put("/api/piani/:id", async (req, res) => {
       durata: durata ? parseInt(durata) : null,
       vincoloSesso: vincoloSesso || null,
       vincoloNazionalita: vincoloNazionalita || null,
-      skills: skillIds?.length ? { create: skillIds.map((sid: number) => ({ skillId: sid })) } : undefined,
+      skills: skillIds?.length
+        ? { create: skillIds.map((sid: number) => ({ skillId: sid })) }
+        : undefined,
     },
-    include: { tipoServizio: { include: { skills: true } }, utente: true, skills: { include: { skill: true } } },
+    include: {
+      tipoServizio: { include: { skills: true } },
+      utente: true,
+      skills: { include: { skill: true } },
+    },
   });
   res.json(piano);
 });
@@ -1055,19 +1209,22 @@ app.get("/api/briefing", async (req, res) => {
     interventiSettimana,
     sovraccarichi,
     scopertiSettimana: Object.entries(
-      interventiScopertiSettimana.reduce((acc, i) => {
-        const servizio = i.utente.commessa?.nome ?? "Senza servizio";
-        if (!acc[servizio]) acc[servizio] = [];
-        acc[servizio].push({
-          id: i.id,
-          utente: i.utente.nome,
-          servizio: i.tipoServizio?.nome ?? "—",
-          turno: i.turno,
-          durata: i.durata,
-          data: i.data.toISOString().slice(0, 10),
-        });
-        return acc;
-      }, {} as Record<string, any[]>)
+      interventiScopertiSettimana.reduce(
+        (acc, i) => {
+          const servizio = i.utente.commessa?.nome ?? "Senza servizio";
+          if (!acc[servizio]) acc[servizio] = [];
+          acc[servizio].push({
+            id: i.id,
+            utente: i.utente.nome,
+            servizio: i.tipoServizio?.nome ?? "—",
+            turno: i.turno,
+            durata: i.durata,
+            data: i.data.toISOString().slice(0, 10),
+          });
+          return acc;
+        },
+        {} as Record<string, any[]>,
+      ),
     ).map(([nomeServizio, interventi]) => ({ nomeServizio, interventi })),
   });
 });
@@ -1098,7 +1255,9 @@ app.get("/api/gap-ore", async (_req, res) => {
   for (const utente of utenti) {
     let minutiPianificati = 0;
     for (const piano of utente.piani) {
-      const giorni = piano.giorniSettimana.split(",").filter((g) => g.trim() !== "").length;
+      const giorni = piano.giorniSettimana
+        .split(",")
+        .filter((g) => g.trim() !== "").length;
       const durata = piano.durata ?? piano.tipoServizio.durata;
       minutiPianificati += giorni * durata;
     }
@@ -1111,15 +1270,17 @@ app.get("/api/gap-ore", async (_req, res) => {
 
     const skillRichieste = new Set<number>();
     for (const piano of utente.piani) {
-      const skills = piano.skills.length > 0
-        ? piano.skills.map((s) => s.skillId)
-        : piano.tipoServizio.skills.map((s) => s.skillId);
+      const skills =
+        piano.skills.length > 0
+          ? piano.skills.map((s) => s.skillId)
+          : piano.tipoServizio.skills.map((s) => s.skillId);
       skills.forEach((s) => skillRichieste.add(s));
     }
 
     const candidati = operatori.filter((op) => {
       if (utente.commessaId && op.commesse.length > 0) {
-        if (!op.commesse.some((c) => c.commessaId === utente.commessaId)) return false;
+        if (!op.commesse.some((c) => c.commessaId === utente.commessaId))
+          return false;
       }
       if (skillRichieste.size === 0) return true;
       const skillOp = new Set(op.skills.map((s) => s.skillId));
@@ -1127,7 +1288,10 @@ app.get("/api/gap-ore", async (_req, res) => {
     });
 
     const eta = utente.dataNascita
-      ? Math.floor((Date.now() - utente.dataNascita.getTime()) / (1000 * 60 * 60 * 24 * 365.25))
+      ? Math.floor(
+          (Date.now() - utente.dataNascita.getTime()) /
+            (1000 * 60 * 60 * 24 * 365.25),
+        )
       : null;
 
     risultati.push({
@@ -1147,7 +1311,9 @@ app.get("/api/gap-ore", async (_req, res) => {
         nome: op.nome,
         qualifica: op.qualifica,
         oreSettimanali: op.oreSettimanali,
-        isPreferito: utente.operatoriPreferiti.some((p) => p.operatoreId === op.id),
+        isPreferito: utente.operatoriPreferiti.some(
+          (p) => p.operatoreId === op.id,
+        ),
       })),
     });
   }
@@ -1159,17 +1325,30 @@ app.get("/api/gap-ore", async (_req, res) => {
 const MAX_TOOL_RESULT_CHARS = 800;
 function troncaRisultato(s: string): string {
   if (s.length <= MAX_TOOL_RESULT_CHARS) return s;
-  return s.slice(0, MAX_TOOL_RESULT_CHARS) + `\n[...troncato, ${s.length - MAX_TOOL_RESULT_CHARS} caratteri omessi]`;
+  return (
+    s.slice(0, MAX_TOOL_RESULT_CHARS) +
+    `\n[...troncato, ${s.length - MAX_TOOL_RESULT_CHARS} caratteri omessi]`
+  );
 }
 
-function estraiUtente(req: any): { nome: string; ruolo: string; email: string } {
+function estraiUtente(req: any): {
+  nome: string;
+  ruolo: string;
+  email: string;
+} {
   try {
     const auth = req.headers.authorization as string | undefined;
     if (auth?.startsWith("Bearer ")) {
       const payload = jwt.verify(auth.slice(7), JWT_SECRET) as any;
-      return { nome: payload.nome ?? "Collaboratore", ruolo: payload.ruolo ?? "operatore", email: payload.email ?? "" };
+      return {
+        nome: payload.nome ?? "Collaboratore",
+        ruolo: payload.ruolo ?? "operatore",
+        email: payload.email ?? "",
+      };
     }
-  } catch { /* token assente o non valido */ }
+  } catch {
+    /* token assente o non valido */
+  }
   return { nome: "Collaboratore", ruolo: "operatore", email: "" };
 }
 
@@ -1214,12 +1393,30 @@ PER DIAGNOSI SPECIFICHE
 - Post-operatorio / allettamento: mobilizzazione, esercizi respiratori, prevenzione decubiti
 ---`;
 
-const KEYWORDS_ATTIVITA = ["attività", "gap", "ore da coprire", "suggerisci", "pianifica", "proponi", "gap di", "piano assistenziale", "non coperte", "ore mancanti", "qualità di vita"];
+const KEYWORDS_ATTIVITA = [
+  "attività",
+  "gap",
+  "ore da coprire",
+  "suggerisci",
+  "pianifica",
+  "proponi",
+  "gap di",
+  "piano assistenziale",
+  "non coperte",
+  "ore mancanti",
+  "qualità di vita",
+];
 
-function buildSystemPrompt(nome: string, ruolo: string, messaggio?: string): string {
+function buildSystemPrompt(
+  nome: string,
+  ruolo: string,
+  messaggio?: string,
+): string {
   const oggi = new Date().toLocaleDateString("it-IT");
   const isCoord = ruolo === "admin" || ruolo === "coordinatore";
-  const ruoloDesc = isCoord ? "coordinatore del gruppo Coordina**menti**" : "operatore del gruppo Coordina**menti**";
+  const ruoloDesc = isCoord
+    ? "coordinatore del gruppo Coordina**menti**"
+    : "operatore del gruppo Coordina**menti**";
   const includeCatalogo = messaggio
     ? KEYWORDS_ATTIVITA.some((k) => messaggio.toLowerCase().includes(k))
     : false;
@@ -1243,7 +1440,8 @@ Hai accesso ai seguenti strumenti:
 - genera_turni: genera i turni per un periodo dato
 - ottimizza_percorso: ordina le visite minimizzando i km
 - trova_sostituto: individua sostituti per un operatore assente
-- cerca_operatore: cerca un operatore per nome e ottiene il suo ID (usare PRIMA di trova_sostituto quando il coordinatore nomina una persona)
+- cerca_operatore: cerca un OPERATORE (chi eroga il servizio) per nome — usare SOLO per operatori/caregiver
+- cerca_utente: cerca un UTENTE/PAZIENTE (chi riceve il servizio) per nome — usare quando si parla di un assistito
 - get_operatori, get_utenti, get_interventi_giorno, get_skill, get_tipi_servizio, get_equipe, get_piani_assistenziali, get_indisponibilita, get_statistiche: lettura dati
 - get_qualifiche, aggiungi_qualifica: gestione qualifiche
 - invia_email_riepilogo: invia riepilogo giornaliero agli operatori via email
@@ -1262,7 +1460,8 @@ Regole operative:
 - Se viene chiesto di generare turni senza specificare le date, chiedi il periodo desiderato
 - Se trovi un operatore assente con interventi assegnati, proponi subito i sostituti
 - Segnala quando un utente non ha copertura o un operatore supera le ore contrattuali
-- Quando il coordinatore nomina una persona, usa cerca_operatore per trovarne l'ID, poi usa quell'ID nei tool successivi
+- DISTINZIONE FONDAMENTALE: operatori = chi lavora (OSS, infermieri); utenti = pazienti/assistiti che ricevono cure. Non confonderli mai
+- Quando si nomina un OPERATORE per nome → cerca_operatore. Quando si nomina un UTENTE/PAZIENTE per nome → cerca_utente
 - Per trovare sostituti: chiama cerca_operatore poi trova_sostituto — NON usare mai get_operatori per costruire manualmente una lista di sostituti
 - trova_sostituto restituisce già la lista ordinata e filtrata; usala direttamente senza aggiungere o rimuovere elementi
 - Non menzionare mai ID numerici, etichette interne (OP7, U3) o passaggi tecnici interni nella risposta — parla solo di persone e situazioni
@@ -1280,7 +1479,6 @@ const SUGGERIMENTI_FALLBACK = [
   "Genera i turni di questa settimana",
   "Mostrami le indisponibilità future",
   "Dammi un riepilogo della settimana",
-  "Chi può fare medicazioni?",
 ];
 
 app.get("/api/chat/suggerimenti", async (req, res) => {
@@ -1317,16 +1515,28 @@ app.post("/api/chat/stream", async (req, res) => {
     const { message, history = [] } = req.body;
     const trimmedHistory = (history as any[]).slice(-2).map((m: any) => ({
       ...m,
-      content: typeof m.content === "string" && m.content.length > 800
-        ? m.content.slice(0, 800) + "…"
-        : m.content,
+      content:
+        typeof m.content === "string" && m.content.length > 800
+          ? m.content.slice(0, 800) + "…"
+          : m.content,
     }));
-    const messages = [...trimmedHistory, { role: "user" as const, content: message }];
+    const messages = [
+      ...trimmedHistory,
+      { role: "user" as const, content: message },
+    ];
 
     // Log query per suggerimenti adattativi (fire and forget)
-    prisma.feedbackAI.create({
-      data: { tipo: "chat_query", messaggio: message, risposta: "", toolsUsati: ["__chat_query__"], rating: 0 },
-    }).catch(() => {});
+    prisma.feedbackAI
+      .create({
+        data: {
+          tipo: "chat_query",
+          messaggio: message,
+          risposta: "",
+          toolsUsati: ["__chat_query__"],
+          rating: 0,
+        },
+      })
+      .catch(() => {});
 
     const utente = estraiUtente(req);
     const systemPrompt = buildSystemPrompt(utente.nome, utente.ruolo, message);
@@ -1396,7 +1606,9 @@ app.post("/api/chat/stream", async (req, res) => {
           args,
         });
 
-        const risultato = troncaRisultato(await eseguiTool(tc.function.name, args));
+        const risultato = troncaRisultato(
+          await eseguiTool(tc.function.name, args),
+        );
 
         currentMessages.push({
           role: "tool" as const,
@@ -1432,11 +1644,19 @@ app.post("/api/import/operatori", async (req, res) => {
       const coords = r.indirizzo ? await geocodificaRoma(r.indirizzo) : null;
       const emailNorm = r.email?.trim().toLowerCase() || null;
       const commesseNomi: string[] = (r.commessa ?? "")
-        .split(",").map((c: string) => c.trim()).filter(Boolean);
-      const commessaIds = await Promise.all(commesseNomi.map(async (nome: string) => {
-        const c = await prisma.commessa.upsert({ where: { nome }, update: {}, create: { nome } });
-        return c.id;
-      }));
+        .split(",")
+        .map((c: string) => c.trim())
+        .filter(Boolean);
+      const commessaIds = await Promise.all(
+        commesseNomi.map(async (nome: string) => {
+          const c = await prisma.commessa.upsert({
+            where: { nome },
+            update: {},
+            create: { nome },
+          });
+          return c.id;
+        }),
+      );
       const operatore = await prisma.operatore.create({
         data: {
           nome: r.nome.trim(),
@@ -1487,7 +1707,11 @@ app.post("/api/import/utenti", async (req, res) => {
       let commessaId: number | null = null;
       if (r.commessa?.trim()) {
         const nome = r.commessa.trim();
-        const c = await prisma.commessa.upsert({ where: { nome }, update: {}, create: { nome } });
+        const c = await prisma.commessa.upsert({
+          where: { nome },
+          update: {},
+          create: { nome },
+        });
         commessaId = c.id;
       }
       await prisma.utente.create({
@@ -1559,7 +1783,9 @@ app.put("/api/auth/profilo", async (req, res) => {
   const utente = estraiUtente(req);
   const { passwordAttuale, nuovaPassword, nuovaEmail } = req.body;
 
-  const record = await prisma.utenteApp.findUnique({ where: { email: utente.email } });
+  const record = await prisma.utenteApp.findUnique({
+    where: { email: utente.email },
+  });
   if (!record) return res.status(404).json({ errore: "Utente non trovato" });
 
   if (!bcrypt.compareSync(passwordAttuale, record.passwordHash))
@@ -1567,13 +1793,17 @@ app.put("/api/auth/profilo", async (req, res) => {
 
   const data: any = {};
   if (nuovaEmail?.trim()) data.email = nuovaEmail.toLowerCase().trim();
-  if (nuovaPassword?.trim()) data.passwordHash = bcrypt.hashSync(nuovaPassword, 10);
+  if (nuovaPassword?.trim())
+    data.passwordHash = bcrypt.hashSync(nuovaPassword, 10);
 
   if (Object.keys(data).length === 0)
     return res.status(400).json({ errore: "Nessuna modifica richiesta" });
 
   try {
-    const aggiornato = await prisma.utenteApp.update({ where: { id: record.id }, data });
+    const aggiornato = await prisma.utenteApp.update({
+      where: { id: record.id },
+      data,
+    });
     res.json({ ok: true, email: aggiornato.email });
   } catch {
     res.status(400).json({ errore: "Email già in uso" });
@@ -1638,17 +1868,43 @@ app.delete("/api/utenti-app/:id", async (req, res) => {
 // Feedback AI
 app.post("/api/feedback-ai", async (req, res) => {
   try {
-    const { messaggio = "", risposta = "", toolsUsati = [], rating, nota, contesto } = req.body;
-    if (rating !== 1 && rating !== -1) return res.status(400).json({ ok: false, errore: "rating deve essere 1 o -1" });
+    const {
+      messaggio = "",
+      risposta = "",
+      toolsUsati = [],
+      rating,
+      nota,
+      contesto,
+    } = req.body;
+    if (rating !== 1 && rating !== -1)
+      return res
+        .status(400)
+        .json({ ok: false, errore: "rating deve essere 1 o -1" });
 
     let tipo = "generale";
-    if ((toolsUsati as string[]).includes("cambio_manuale")) tipo = "cambio_manuale";
-    else if ((toolsUsati as string[]).includes("genera_turni")) tipo = "genera_turni";
-    else if ((toolsUsati as string[]).includes("trova_sostituto")) tipo = "trova_sostituto";
-    else if (KEYWORDS_ATTIVITA.some((k) => (messaggio as string).toLowerCase().includes(k))) tipo = "suggerimento_attivita";
+    if ((toolsUsati as string[]).includes("cambio_manuale"))
+      tipo = "cambio_manuale";
+    else if ((toolsUsati as string[]).includes("genera_turni"))
+      tipo = "genera_turni";
+    else if ((toolsUsati as string[]).includes("trova_sostituto"))
+      tipo = "trova_sostituto";
+    else if (
+      KEYWORDS_ATTIVITA.some((k) =>
+        (messaggio as string).toLowerCase().includes(k),
+      )
+    )
+      tipo = "suggerimento_attivita";
 
     const fb = await prisma.feedbackAI.create({
-      data: { tipo, messaggio, risposta, toolsUsati, rating, nota: nota || null, contesto: contesto ?? undefined },
+      data: {
+        tipo,
+        messaggio,
+        risposta,
+        toolsUsati,
+        rating,
+        nota: nota || null,
+        contesto: contesto ?? undefined,
+      },
     });
     res.json({ ok: true, id: fb.id });
   } catch (e) {
@@ -1687,29 +1943,49 @@ app.get("/api/mappa", async (req, res) => {
       prisma.operatore.findMany({
         where: { attivo: true, lat: { not: null }, lon: { not: null } },
         select: {
-          id: true, nome: true, qualifica: true,
-          telefono: true, lat: true, lon: true, mezzoTrasporto: true,
+          id: true,
+          nome: true,
+          qualifica: true,
+          telefono: true,
+          lat: true,
+          lon: true,
+          mezzoTrasporto: true,
         },
         orderBy: { nome: "asc" },
       }),
       prisma.utente.findMany({
         where: { attivo: true, lat: { not: null }, lon: { not: null } },
-        select: { id: true, nome: true, indirizzo: true, lat: true, lon: true, commessa: { select: { id: true, nome: true } } },
+        select: {
+          id: true,
+          nome: true,
+          indirizzo: true,
+          lat: true,
+          lon: true,
+          commessa: { select: { id: true, nome: true } },
+        },
         orderBy: { nome: "asc" },
       }),
       prisma.intervento.findMany({
         where: { data: { gte: oggi, lte: fineOggi } },
         select: {
-          id: true, turno: true, ordineGiornata: true,
+          id: true,
+          turno: true,
+          ordineGiornata: true,
           operatore: { select: { id: true, nome: true } },
           utente: { select: { id: true, nome: true, lat: true, lon: true } },
           tipoServizio: { select: { nome: true } },
         },
-        orderBy: [{ operatoreId: "asc" }, { turno: "asc" }, { ordineGiornata: "asc" }],
+        orderBy: [
+          { operatoreId: "asc" },
+          { turno: "asc" },
+          { ordineGiornata: "asc" },
+        ],
       }),
     ]);
 
-    const totaleOperatori = await prisma.operatore.count({ where: { attivo: true } });
+    const totaleOperatori = await prisma.operatore.count({
+      where: { attivo: true },
+    });
     const totaleUtenti = await prisma.utente.count({ where: { attivo: true } });
 
     res.json({
@@ -1782,7 +2058,9 @@ app.get("/api/interventi/:id/candidati", async (req, res) => {
     const candidati = operatori
       .map((op) => {
         const skillOp = new Set(op.skills.map((s) => s.skillId));
-        const hasSkills = skillNecessarie.size === 0 || [...skillNecessarie].every((s) => skillOp.has(s));
+        const hasSkills =
+          skillNecessarie.size === 0 ||
+          [...skillNecessarie].every((s) => skillOp.has(s));
         return {
           id: op.id,
           nome: op.nome,
@@ -1818,37 +2096,62 @@ app.put("/api/interventi/:id/assegna", async (req, res) => {
     if (!forza && operatoreId) {
       const avvisi: string[] = [];
       const [intervento, operatore] = await Promise.all([
-        prisma.intervento.findUnique({ where: { id }, include: { tipoServizio: { include: { skills: true } } } }),
-        prisma.operatore.findUnique({ where: { id: operatoreId }, include: { skills: true } }),
+        prisma.intervento.findUnique({
+          where: { id },
+          include: { tipoServizio: { include: { skills: true } } },
+        }),
+        prisma.operatore.findUnique({
+          where: { id: operatoreId },
+          include: { skills: true },
+        }),
       ]);
       if (!intervento || !operatore) return res.status(404).json({ ok: false });
 
-      const giornoInizio = new Date(intervento.data); giornoInizio.setHours(0, 0, 0, 0);
-      const giornoFine = new Date(intervento.data); giornoFine.setHours(23, 59, 59, 999);
+      const giornoInizio = new Date(intervento.data);
+      giornoInizio.setHours(0, 0, 0, 0);
+      const giornoFine = new Date(intervento.data);
+      giornoFine.setHours(23, 59, 59, 999);
 
       const ind = await prisma.indisponibilita.findFirst({
         where: { operatoreId, data: { gte: giornoInizio, lte: giornoFine } },
       });
-      if (ind) avvisi.push(`Operatore segnato come indisponibile${ind.motivo ? ` (${ind.motivo})` : ""}`);
+      if (ind)
+        avvisi.push(
+          `Operatore segnato come indisponibile${ind.motivo ? ` (${ind.motivo})` : ""}`,
+        );
 
-      const skillRichieste = intervento.tipoServizio?.skills.map((s) => s.skillId) ?? [];
+      const skillRichieste =
+        intervento.tipoServizio?.skills.map((s) => s.skillId) ?? [];
       if (skillRichieste.length > 0) {
         const skillOp = new Set(operatore.skills.map((s) => s.skillId));
-        if (!skillRichieste.every((s) => skillOp.has(s))) avvisi.push("Operatore senza tutte le skill richieste per questo servizio");
+        if (!skillRichieste.every((s) => skillOp.has(s)))
+          avvisi.push(
+            "Operatore senza tutte le skill richieste per questo servizio",
+          );
       }
 
       const dow = giornoInizio.getDay();
       const lunedi = new Date(giornoInizio);
       lunedi.setDate(giornoInizio.getDate() - (dow === 0 ? 6 : dow - 1));
-      const domenica = new Date(lunedi); domenica.setDate(lunedi.getDate() + 6); domenica.setHours(23, 59, 59, 999);
+      const domenica = new Date(lunedi);
+      domenica.setDate(lunedi.getDate() + 6);
+      domenica.setHours(23, 59, 59, 999);
       const somma = await prisma.intervento.aggregate({
-        where: { operatoreId, data: { gte: lunedi, lte: domenica }, id: { not: id } },
+        where: {
+          operatoreId,
+          data: { gte: lunedi, lte: domenica },
+          id: { not: id },
+        },
         _sum: { durata: true },
       });
       const oreUsate = ((somma._sum.durata ?? 0) + intervento.durata) / 60;
-      if (oreUsate > operatore.oreSettimanali) avvisi.push(`Ore settimanali superate: ${oreUsate.toFixed(1)}h su ${operatore.oreSettimanali}h contratto`);
+      if (oreUsate > operatore.oreSettimanali)
+        avvisi.push(
+          `Ore settimanali superate: ${oreUsate.toFixed(1)}h su ${operatore.oreSettimanali}h contratto`,
+        );
 
-      if (avvisi.length > 0) return res.json({ ok: false, richiedeConferma: true, avvisi });
+      if (avvisi.length > 0)
+        return res.json({ ok: false, richiedeConferma: true, avvisi });
     }
 
     await prisma.intervento.update({ where: { id }, data: { operatoreId } });
@@ -1898,7 +2201,10 @@ function oaiToolsToAnthropic(tools: any[]): Anthropic.Tool[] {
   return tools.map((t) => ({
     name: t.function.name,
     description: t.function.description ?? "",
-    input_schema: (t.function.parameters ?? { type: "object", properties: {} }) as Anthropic.Tool.InputSchema,
+    input_schema: (t.function.parameters ?? {
+      type: "object",
+      properties: {},
+    }) as Anthropic.Tool.InputSchema,
   }));
 }
 
@@ -1907,7 +2213,10 @@ function oaiMessagesToAnthropic(messages: any[]): Anthropic.MessageParam[] {
   let i = 0;
   while (i < messages.length) {
     const m = messages[i];
-    if (m.role === "system") { i++; continue; }
+    if (m.role === "system") {
+      i++;
+      continue;
+    }
 
     if (m.role === "user" && typeof m.content === "string") {
       result.push({ role: "user", content: m.content });
@@ -1920,7 +2229,13 @@ function oaiMessagesToAnthropic(messages: any[]): Anthropic.MessageParam[] {
             type: "tool_use" as const,
             id: tc.id,
             name: tc.function.name,
-            input: (() => { try { return JSON.parse(tc.function.arguments || "{}"); } catch { return {}; } })(),
+            input: (() => {
+              try {
+                return JSON.parse(tc.function.arguments || "{}");
+              } catch {
+                return {};
+              }
+            })(),
           })),
         });
       } else {
@@ -1949,14 +2264,25 @@ function oaiMessagesToAnthropic(messages: any[]): Anthropic.MessageParam[] {
 async function chatWithOllamaNative(params: { messages: any[]; tools: any[] }) {
   const url = `${OLLAMA_BASE_URL}/api/chat`;
   console.log(`[ollama] POST ${url} model=${OLLAMA_MODEL}`);
-  const body = { model: OLLAMA_MODEL, messages: params.messages, tools: params.tools, stream: false };
-  const resp = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const body = {
+    model: OLLAMA_MODEL,
+    messages: params.messages,
+    tools: params.tools,
+    stream: false,
+  };
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
   if (!resp.ok) {
     const text = await resp.text().catch(() => "");
     console.error(`[ollama] ${resp.status}: ${text}`);
-    throw Object.assign(new Error(`Ollama ${resp.status}: ${text}`), { status: resp.status });
+    throw Object.assign(new Error(`Ollama ${resp.status}: ${text}`), {
+      status: resp.status,
+    });
   }
-  const data = await resp.json() as any;
+  const data = (await resp.json()) as any;
   const msg = data.message ?? {};
   const rawToolCalls: any[] = msg.tool_calls ?? [];
   const toolCalls = rawToolCalls.map((tc: any, i: number) => ({
@@ -1964,20 +2290,23 @@ async function chatWithOllamaNative(params: { messages: any[]; tools: any[] }) {
     type: "function",
     function: {
       name: tc.function.name,
-      arguments: typeof tc.function.arguments === "string"
-        ? tc.function.arguments
-        : JSON.stringify(tc.function.arguments ?? {}),
+      arguments:
+        typeof tc.function.arguments === "string"
+          ? tc.function.arguments
+          : JSON.stringify(tc.function.arguments ?? {}),
     },
   }));
   return {
     res: {
-      choices: [{
-        message: {
-          content: msg.content ?? null,
-          tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+      choices: [
+        {
+          message: {
+            content: msg.content ?? null,
+            tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+          },
+          finish_reason: data.done_reason ?? "stop",
         },
-        finish_reason: data.done_reason ?? "stop",
-      }],
+      ],
     },
     provider: "ollama",
   };
@@ -1997,22 +2326,34 @@ async function chatWithClaude(params: { messages: any[]; tools: any[] }) {
     tools: anthropicTools,
   });
 
-  const textBlock = response.content.find((b) => b.type === "text") as Anthropic.TextBlock | undefined;
-  const toolBlocks = response.content.filter((b) => b.type === "tool_use") as Anthropic.ToolUseBlock[];
+  const textBlock = response.content.find((b) => b.type === "text") as
+    | Anthropic.TextBlock
+    | undefined;
+  const toolBlocks = response.content.filter(
+    (b) => b.type === "tool_use",
+  ) as Anthropic.ToolUseBlock[];
 
   return {
     res: {
-      choices: [{
-        message: {
-          content: textBlock?.text ?? null,
-          tool_calls: toolBlocks.length > 0 ? toolBlocks.map((b) => ({
-            id: b.id,
-            type: "function",
-            function: { name: b.name, arguments: JSON.stringify(b.input) },
-          })) : undefined,
+      choices: [
+        {
+          message: {
+            content: textBlock?.text ?? null,
+            tool_calls:
+              toolBlocks.length > 0
+                ? toolBlocks.map((b) => ({
+                    id: b.id,
+                    type: "function",
+                    function: {
+                      name: b.name,
+                      arguments: JSON.stringify(b.input),
+                    },
+                  }))
+                : undefined,
+          },
+          finish_reason: response.stop_reason,
         },
-        finish_reason: response.stop_reason,
-      }],
+      ],
     },
     provider: "claude",
   };
@@ -2022,17 +2363,28 @@ function categorizzaErroreAI(provider: string, err: any): string {
   const status = err?.status ?? err?.response?.status;
   const msg = (err?.message ?? err?.error?.message ?? "").toLowerCase();
 
-  if (status === 401 || status === 403) return `${provider}: chiave API non valida o non autorizzata`;
-  if (status === 402) return `${provider}: crediti esauriti — ricarica il piano`;
+  if (status === 401 || status === 403)
+    return `${provider}: chiave API non valida o non autorizzata`;
+  if (status === 402)
+    return `${provider}: crediti esauriti — ricarica il piano`;
   if (status === 429) {
-    if (msg.includes("credit") || msg.includes("insufficient") || msg.includes("balance")) {
+    if (
+      msg.includes("credit") ||
+      msg.includes("insufficient") ||
+      msg.includes("balance")
+    ) {
       return `${provider}: crediti esauriti — ricarica il piano`;
     }
-    const retry = err?.headers?.["retry-after"] ?? err?.headers?.get?.("retry-after");
+    const retry =
+      err?.headers?.["retry-after"] ?? err?.headers?.get?.("retry-after");
     const minuti = retry ? Math.ceil(parseInt(retry) / 60) : null;
     return `${provider}: limite token giornaliero raggiunto${minuti ? ` — riprova tra ${minuti} min` : ""}`;
   }
-  if (status === 503 || msg.includes("unavailable") || msg.includes("connection")) {
+  if (
+    status === 503 ||
+    msg.includes("unavailable") ||
+    msg.includes("connection")
+  ) {
     return `${provider}: non raggiungibile`;
   }
   return `${provider}: errore (${status ?? "sconosciuto"})`;
@@ -2066,7 +2418,12 @@ async function chatWithFallback(params: any) {
     console.log("✅ Risposta da Groq");
     return { res, provider: "groq" };
   } catch (err: any) {
-    console.error("[Groq] errore dettaglio:", err?.status, err?.message, JSON.stringify(err?.error ?? err?.body ?? {}));
+    console.error(
+      "[Groq] errore dettaglio:",
+      err?.status,
+      err?.message,
+      JSON.stringify(err?.error ?? err?.body ?? {}),
+    );
     const desc = categorizzaErroreAI("Groq", err);
     console.warn("🔴", desc);
     falliti.push(desc);
@@ -2103,7 +2460,9 @@ async function chatWithFallback(params: any) {
   // }
 
   // Tutti i provider hanno fallito
-  throw new Error(`Nessun provider AI disponibile:\n${falliti.map((f) => `• ${f}`).join("\n")}`);
+  throw new Error(
+    `Nessun provider AI disponibile:\n${falliti.map((f) => `• ${f}`).join("\n")}`,
+  );
 }
 
 import { toolDefinitions, eseguiTool } from "./tools";
@@ -2114,7 +2473,10 @@ app.post("/api/chat", async (req, res) => {
 
     const { message, history = [] } = req.body;
     const trimmedHistory = (history as any[]).slice(-4);
-    const messages = [...trimmedHistory, { role: "user" as const, content: message }];
+    const messages = [
+      ...trimmedHistory,
+      { role: "user" as const, content: message },
+    ];
 
     const utente = estraiUtente(req);
     const systemPrompt = buildSystemPrompt(utente.nome, utente.ruolo, message);
@@ -2203,7 +2565,9 @@ app.post("/api/chat", async (req, res) => {
           continue;
         }
         console.log(`Tool chiamato: ${tc.function.name}`, args);
-        const risultato = troncaRisultato(await eseguiTool(tc.function.name, args));
+        const risultato = troncaRisultato(
+          await eseguiTool(tc.function.name, args),
+        );
 
         currentMessages.push({
           role: "tool" as const,

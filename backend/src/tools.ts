@@ -100,11 +100,25 @@ export const toolDefinitions = [
     type: "function" as const,
     function: {
       name: "cerca_operatore",
-      description: "Cerca un operatore per nome (o parte del nome) e restituisce il suo ID numerico. Usare SEMPRE quando il coordinatore menziona un operatore per nome, prima di chiamare trova_sostituto o altri tool che richiedono operatoreId.",
+      description: "Cerca un OPERATORE (chi eroga il servizio) per nome e restituisce il suo ID. Usare solo per operatori/caregivers, MAI per utenti/pazienti/assistiti.",
       parameters: {
         type: "object",
         properties: {
           nome: { type: "string", description: "Nome o cognome parziale dell'operatore da cercare" },
+        },
+        required: ["nome"],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "cerca_utente",
+      description: "Cerca un UTENTE (paziente/assistito che riceve il servizio) per nome e restituisce il suo ID. Usare quando il coordinatore menziona un utente/paziente per nome, prima di get_piani_assistenziali o altri tool che richiedono utenteId.",
+      parameters: {
+        type: "object",
+        properties: {
+          nome: { type: "string", description: "Nome o cognome parziale dell'utente/paziente da cercare" },
         },
         required: ["nome"],
       },
@@ -404,6 +418,15 @@ export async function eseguiTool(nome: string, args: Record<string, any> = {}): 
       });
       if (risultati.length === 0) return JSON.stringify({ errore: `Nessun operatore trovato con nome "${args.nome}"` });
       return JSON.stringify(risultati.map((o) => ({ id: o.id, etichetta: `OP${o.id}`, qualifica: o.qualifica })));
+    }
+
+    case "cerca_utente": {
+      const risultati = await prisma.utente.findMany({
+        where: { attivo: true, nome: { contains: args.nome, mode: "insensitive" } },
+        select: { id: true, indirizzo: true },
+      });
+      if (risultati.length === 0) return JSON.stringify({ errore: `Nessun utente trovato con nome "${args.nome}"` });
+      return JSON.stringify(risultati.map((u) => ({ id: u.id, etichetta: `U${u.id}` })));
     }
 
     case "get_skill": {
