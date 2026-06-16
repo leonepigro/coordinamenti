@@ -1108,6 +1108,17 @@ app.delete("/api/tipi-servizio/:id", async (req, res) => {
     res.status(500).json({ ok: false, error: String(e) });
   }
 });
+app.get("/api/dashboard/badges", async (_req, res) => {
+  const oggi = new Date();
+  oggi.setHours(0, 0, 0, 0);
+  const domani = new Date(oggi);
+  domani.setDate(oggi.getDate() + 1);
+  const turniScoperti = await prisma.intervento.count({
+    where: { data: { gte: oggi, lt: domani }, operatoreId: null },
+  });
+  res.json({ turniScoperti });
+});
+
 app.get("/api/briefing", async (req, res) => {
   const oggi = new Date();
   oggi.setHours(0, 0, 0, 0);
