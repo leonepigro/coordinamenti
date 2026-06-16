@@ -13,6 +13,8 @@ import GestioneAccount from "./components/GestioneAccount";
 import Dashboard from "./components/Dashboard";
 import Mappa from "./components/Mappa";
 import Login from "./components/Login";
+import DailySplash, { getSplashKey } from "./components/DailySplash";
+import PageTransition from "./components/PageTransition";
 
 import { auth } from "./api/client";
 
@@ -48,6 +50,15 @@ export default function App() {
     },
   ]);
   const [messaggioPendente, setMessaggioPendente] = useState<string | null>(null);
+  const [mostraSplash, setMostraSplash] = useState(false);
+
+  useEffect(() => {
+    if (autenticato && utente?.ruolo !== "operatore") {
+      if (!localStorage.getItem(getSplashKey())) {
+        setMostraSplash(true);
+      }
+    }
+  }, [autenticato, utente]);
 
   function chiediSuggerimento(msg: string) {
     setMessaggioPendente(msg);
@@ -109,21 +120,30 @@ export default function App() {
       }}
       utente={utente}
     >
-      {pagina === "dashboard" && <Dashboard onNavigate={setPagina} onChiediSuggerimento={chiediSuggerimento} />}
-      {pagina === "mappa" && <Mappa />}
-      {pagina === "turni" && <TurniGriglia />}
-      {pagina === "operatori" && <Operatori />}
-      {pagina === "utenti" && <Utenti />}
-      {pagina === "equipe" && <Equipe />}
-      {pagina === "indisponibilita" && <Indisponibilita />}
-      {pagina === "skill" && <Skill />}{" "}
-      {pagina === "piani" && <PianiAssistenziali />}
-      {pagina === "servizi" && <TipiServizio />}
-      {pagina === "chat" && (
-        <ChatAI messaggi={messaggi} setMessaggi={setMessaggi} messaggioPendente={messaggioPendente} setMessaggioPendente={(v) => setMessaggioPendente(v)} />
-      )}
-      {pagina === "utenti-app" && utente?.ruolo === "admin" && (
-        <GestioneAccount />
+      <PageTransition key={pagina}>
+        {pagina === "dashboard" && <Dashboard onNavigate={setPagina} onChiediSuggerimento={chiediSuggerimento} />}
+        {pagina === "mappa" && <Mappa />}
+        {pagina === "turni" && <TurniGriglia />}
+        {pagina === "operatori" && <Operatori />}
+        {pagina === "utenti" && <Utenti />}
+        {pagina === "equipe" && <Equipe />}
+        {pagina === "indisponibilita" && <Indisponibilita />}
+        {pagina === "skill" && <Skill />}
+        {pagina === "piani" && <PianiAssistenziali />}
+        {pagina === "servizi" && <TipiServizio />}
+        {pagina === "chat" && (
+          <ChatAI messaggi={messaggi} setMessaggi={setMessaggi} messaggioPendente={messaggioPendente} setMessaggioPendente={(v) => setMessaggioPendente(v)} />
+        )}
+        {pagina === "utenti-app" && utente?.ruolo === "admin" && (
+          <GestioneAccount />
+        )}
+      </PageTransition>
+
+      {mostraSplash && (
+        <DailySplash
+          onClose={() => setMostraSplash(false)}
+          onNavigate={(p) => { setPagina(p); setMostraSplash(false); }}
+        />
       )}
     </Layout>
   );
