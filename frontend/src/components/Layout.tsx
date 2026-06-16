@@ -108,6 +108,21 @@ export default function Layout({
     api.get("/version").then((res) => setVersion(res.data)).catch(() => {});
   }, []);
 
+  const [turniScoperti, setTurniScoperti] = useState(0);
+
+  useEffect(() => {
+    api.get<{ turniScoperti: number }>("/dashboard/badges")
+      .then((res) => setTurniScoperti(res.data.turniScoperti))
+      .catch(() => {});
+  }, []);
+
+  const inizialiUtente = (utenteLocale?.nome ?? utente?.nome ?? "")
+    .split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   function naviga(p: Pagina) {
     setPagina(p);
     setSidebarAperta(false);
@@ -182,6 +197,17 @@ export default function Layout({
             }}
           >
             <span style={{ fontStyle: "italic" }}>menti</span>
+            <div
+              style={{
+                fontSize: 9,
+                color: "rgba(255,255,255,0.2)",
+                letterSpacing: "0.15em",
+                marginTop: 6,
+                textTransform: "uppercase" as const,
+              }}
+            >
+              Powered by AI
+            </div>
           </div>
           <div
             style={{
@@ -249,8 +275,22 @@ export default function Layout({
                         }
                       }}
                     >
-                      <span style={{ fontSize: 13, opacity: attiva ? 1 : 0.7 }}>
+                      <span style={{ fontSize: 13, opacity: attiva ? 1 : 0.7, position: "relative" as const }}>
                         {v.icona}
+                        {v.id === "turni" && turniScoperti > 0 && (
+                          <span
+                            style={{
+                              position: "absolute" as const,
+                              top: -3,
+                              right: -4,
+                              width: 8,
+                              height: 8,
+                              borderRadius: "50%",
+                              background: "var(--terra)",
+                              animation: "pulse 1.8s infinite",
+                            }}
+                          />
+                        )}
                       </span>
                       {v.label}
                     </button>
@@ -301,22 +341,42 @@ export default function Layout({
           <button
             onClick={() => { setProfiloAperto(true); setSidebarAperta(false); }}
             style={{
-              display: "block",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
               width: "100%",
               background: "none",
               border: "none",
               padding: 0,
               cursor: "pointer",
-              textAlign: "left" as const,
               marginBottom: 10,
             }}
             title="Modifica profilo"
           >
-            <div style={{ fontSize: 12, color: "var(--bianco)", fontWeight: 500 }}>
-              {utenteLocale?.nome ?? utente?.nome ?? ""}
+            <div
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: "50%",
+                background: "var(--terra-light)",
+                color: "var(--terra-dark)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 11,
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              {inizialiUtente}
             </div>
-            <div style={{ fontSize: 11, color: "var(--grigio)" }}>
-              {utenteLocale?.email ?? utente?.email ?? utente?.ruolo ?? ""}
+            <div>
+              <div style={{ fontSize: 12, color: "var(--bianco)", fontWeight: 500 }}>
+                {utenteLocale?.nome ?? utente?.nome ?? ""}
+              </div>
+              <div style={{ fontSize: 11, color: "var(--grigio)" }}>
+                {utenteLocale?.email ?? utente?.email ?? utente?.ruolo ?? ""}
+              </div>
             </div>
           </button>
           <button
