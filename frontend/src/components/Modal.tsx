@@ -29,6 +29,8 @@ export default function Modal({
         alignItems: "center",
         justifyContent: "center",
         zIndex: 1000,
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
       }}
     >
       <div
@@ -42,7 +44,7 @@ export default function Modal({
           maxWidth: "90vw",
           maxHeight: "85vh",
           overflowY: "auto",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+          boxShadow: "var(--shadow-modal)",
         }}
       >
         <div
