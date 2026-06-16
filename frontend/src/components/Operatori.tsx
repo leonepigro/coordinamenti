@@ -3,6 +3,7 @@ import { operatori as apiOperatori } from "../api/client";
 import ModalOperatore from "./ModalOperatore";
 import ModalArchivia from "./ModalArchivia";
 import ImportExcel from "./ImportExcel";
+import SkeletonCard from "./SkeletonCard";
 
 interface Skill { skill: { nome: string } }
 interface Operatore {
@@ -69,7 +70,15 @@ export default function Operatori() {
   const totalePagine = Math.ceil(listaFiltrata.length / PER_PAGINA);
   const listaPaginata = listaFiltrata.slice((pagina - 1) * PER_PAGINA, pagina * PER_PAGINA);
 
-  if (loading) return <div style={{ padding: 32, color: "var(--grigio)", fontSize: 14 }}>Caricamento...</div>;
+  if (loading) return (
+    <div style={{ padding: 32 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))", gap: 14 }}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <SkeletonCard key={i} height={160} />
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="cm-page" style={{ padding: 32, background: "var(--bianco)", minHeight: "100vh" }}>
@@ -143,7 +152,7 @@ export default function Operatori() {
               const iniziali = op.nome.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
               return (
                 <div key={op.id} style={{ border: "1px solid var(--bordo)", borderRadius: 14, padding: 20, background: "var(--bianco)", transition: "box-shadow 0.15s, border-color 0.15s" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--terra)"; e.currentTarget.style.boxShadow = "0 2px 12px rgba(196,113,74,0.08)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--terra)"; e.currentTarget.style.boxShadow = "var(--shadow-hover)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--bordo)"; e.currentTarget.style.boxShadow = "none"; }}
                 >
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 16 }}>

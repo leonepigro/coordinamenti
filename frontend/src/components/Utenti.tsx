@@ -4,6 +4,7 @@ import ModalUtente from "./ModalUtente";
 import ModalOperatoriPreferiti from "./ModalOperatoriPreferiti";
 import ModalArchivia from "./ModalArchivia";
 import ImportExcel from "./ImportExcel";
+import SkeletonCard from "./SkeletonCard";
 
 interface Piano {
   tipoServizio: { nome: string; durata: number };
@@ -92,8 +93,15 @@ export default function Utenti() {
 
   function aggiornFiltro(fn: () => void) { fn(); setPagina(1); }
 
-  if (loading)
-    return <div style={{ padding: 32, color: "var(--grigio)", fontSize: 14 }}>Caricamento...</div>;
+  if (loading) return (
+    <div style={{ padding: 32 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <SkeletonCard key={i} height={52} borderRadius={10} />
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="cm-page" style={{ padding: 32, background: "var(--bianco)", minHeight: "100vh" }}>
