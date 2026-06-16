@@ -1,10 +1,7 @@
 import { Resend } from "resend";
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
-
-const prisma = new PrismaClient({ adapter: new PrismaPg(process.env.DATABASE_URL!) });
+import { prisma } from "./db";
 
 function getResend(): Resend | null {
   const key = process.env.RESEND_API_KEY;

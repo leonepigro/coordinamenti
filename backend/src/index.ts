@@ -8,11 +8,7 @@ import bcrypt from "bcryptjs";
 import dotenv from "dotenv";
 dotenv.config();
 
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-export const prisma = new PrismaClient({
-  adapter: new PrismaPg(process.env.DATABASE_URL!),
-});
+import { prisma } from "./db";
 
 const app = express();
 app.use(cors());

@@ -1,10 +1,7 @@
 import { generaTurni, salvaAssegnazioni } from "./scheduler";
 import { ottimizzaGiornata } from "./router";
 import { inviaRiepilogoGiornaliero, inviaAggiornamentoPianificazione } from "./notifiche";
-import { PrismaClient } from "@prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
-
-const prisma = new PrismaClient({ adapter: new PrismaPg(process.env.DATABASE_URL!) });
+import { prisma } from "./db";
 
 export const toolDefinitions = [
   {
