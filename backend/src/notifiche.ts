@@ -98,8 +98,8 @@ function buildHtml(
 
     <!-- Header -->
     <div style="background:#2C1810;border-radius:12px 12px 0 0;padding:28px 28px 20px;">
-      <div style="font-size:10px;font-weight:600;color:#C4714A;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px;">Coordina</div>
-      <div style="font-size:22px;font-weight:300;color:#fff;font-style:italic;margin-bottom:16px;">menti</div>
+      <div style="font-size:10px;font-weight:600;color:#C4714A;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px;">${process.env.APP_LABEL ?? "Coordina"}</div>
+      <div style="font-size:22px;font-weight:300;color:#fff;font-style:italic;margin-bottom:16px;">${process.env.APP_NAME ?? "menti"}</div>
       <div style="font-size:18px;font-weight:600;color:#fff;">Ciao ${operatoreNome.split(" ")[0]} 👋</div>
       <div style="font-size:14px;color:rgba(255,255,255,0.65);margin-top:6px;text-transform:capitalize;">Il tuo piano per ${dataLabel}</div>
     </div>
@@ -117,7 +117,7 @@ function buildHtml(
 
     <!-- Footer -->
     <div style="text-align:center;padding:20px;font-size:11px;color:#bbb;">
-      Coordinamenti · Gestione turni domiciliari
+      ${process.env.APP_NAME ?? "Coordinamenti"} · ${process.env.APP_SUBTITLE ?? "Gestione turni domiciliari"}
     </div>
   </div>
 </body>

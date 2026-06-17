@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Pagina } from "../App";
 import api from "../api/client";
 import ModalProfilo from "./ModalProfilo";
+import { APP_LABEL, APP_NAME, APP_SUBTITLE } from "../config";
 
 const tutteLeVoci = [
   {
@@ -152,8 +153,8 @@ export default function Layout({
           ☰
         </button>
         <div>
-          <span style={{ fontSize: 10, fontWeight: 500, color: "var(--terra)", letterSpacing: "0.12em", textTransform: "uppercase" }}>Coordina</span>
-          <span style={{ fontSize: 16, fontWeight: 300, color: "var(--bianco)", fontStyle: "italic", marginLeft: 2 }}>menti</span>
+          <span style={{ fontSize: 10, fontWeight: 500, color: "var(--terra)", letterSpacing: "0.12em", textTransform: "uppercase" }}>{APP_LABEL}</span>
+          <span style={{ fontSize: 16, fontWeight: 300, color: "var(--bianco)", fontStyle: "italic", marginLeft: 2 }}>{APP_NAME}</span>
         </div>
       </div>
 
@@ -185,7 +186,7 @@ export default function Layout({
               marginBottom: 4,
             }}
           >
-            Coordina
+            {APP_LABEL}
           </div>
           <div
             style={{
@@ -196,7 +197,7 @@ export default function Layout({
               lineHeight: 1.1,
             }}
           >
-            <span style={{ fontStyle: "italic" }}>menti</span>
+            <span style={{ fontStyle: "italic" }}>{APP_NAME}</span>
             <div
               style={{
                 fontSize: 9,
@@ -206,7 +207,7 @@ export default function Layout({
                 textTransform: "uppercase" as const,
               }}
             >
-              Powered by AI
+              {APP_SUBTITLE}
             </div>
           </div>
           <div

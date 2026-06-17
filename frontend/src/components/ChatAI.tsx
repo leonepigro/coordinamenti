@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { APP_LABEL, APP_NAME } from "../config";
 import {
   chat,
   briefing as apiBriefing,
@@ -766,7 +767,7 @@ export default function ChatAI({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && invia()}
-            placeholder="Scrivi a Coordinamenti..."
+            placeholder={`Scrivi a ${APP_LABEL}${APP_NAME}...`}
             style={{
               flex: 1,
               padding: "12px 18px",
